@@ -26,6 +26,7 @@ export function HostRoom() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [_showControls, setShowControls] = useState(true);
     const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [ping, setPing] = useState(0);
 
     // Subscribe to room
     useEffect(() => {
@@ -45,6 +46,7 @@ export function HostRoom() {
         keepAwake();
 
         const manager = new HostPeerManager(signaling, roomId);
+        manager.startStatsLoop((rtt) => setPing(rtt));
         setHostManager(manager);
 
         if (onSignalRef.current !== undefined) {
@@ -66,8 +68,6 @@ export function HostRoom() {
             const url = URL.createObjectURL(selected);
             videoRef.current.src = url;
 
-            // If we were already streaming, restart the stream with the new file
-            // give it a moment to load
             // If we were already streaming, restart the stream with the new file
             // give it a moment to load
             if (streamActive) {
@@ -234,7 +234,7 @@ export function HostRoom() {
                         <ArrowLeftIcon className="w-6 h-6" />
                     </button>
 
-                    <ConnectionStatus viewerCount={viewers.length} roomId={roomId} isHost />
+                    <ConnectionStatus viewerCount={viewers.length} roomId={roomId} isHost ping={ping} />
 
                     <button
                         onClick={shareRoomId}

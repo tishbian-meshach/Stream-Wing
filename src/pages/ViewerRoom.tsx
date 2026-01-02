@@ -3,7 +3,7 @@ import { KeepAwake } from '@capacitor-community/keep-awake';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useRoom } from '../hooks/useRoom';
 import { ViewerPeerManager } from '../webrtc/viewer';
-import { StatusBadge } from '../components/StatusBadge';
+import { StatusBadge, ConnectionStatus } from '../components/StatusBadge';
 import { ViewerControls } from '../components/ViewerControls';
 import { ArrowLeftIcon, WifiIcon } from '../components/Icons';
 
@@ -26,6 +26,7 @@ export function ViewerRoom() {
     // Volume controls
     const [volume, setVolume] = useState(1);
     const [isMuted, setIsMuted] = useState(false);
+    const [ping, setPing] = useState(0);
 
     // Auto-join
     useEffect(() => {
@@ -96,6 +97,7 @@ export function ViewerRoom() {
 
         console.log("Viewer Manager connecting as:", peerId);
         manager.connect(peerId);
+        manager.startStatsLoop((rtt) => setPing(rtt));
         setViewerManager(manager);
 
         if (onSignalRef.current !== undefined) {
@@ -165,11 +167,7 @@ export function ViewerRoom() {
 
                     <div className="flex items-center gap-2">
                         <StatusBadge status={status} />
-                        {roomId && (
-                            <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-sm rounded-full">
-                                <span className="font-mono text-xs text-gray-200">{roomId}</span>
-                            </div>
-                        )}
+                        <ConnectionStatus viewerCount={0} roomId={roomId} ping={ping} />
                     </div>
 
                     <div className="w-10" />

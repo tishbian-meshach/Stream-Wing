@@ -8,6 +8,7 @@ export class HostPeerManager {
     private signaling: SignalingService;
 
     private onSyncEvent?: (event: any) => void;
+    private statsInterval: any;
 
     constructor(signaling: SignalingService, _roomId: string, onSyncEvent?: (event: any) => void) {
         this.signaling = signaling;
@@ -115,8 +116,37 @@ export class HostPeerManager {
     }
 
     cleanup() {
+        if (this.statsInterval) clearInterval(this.statsInterval);
         this.peers.forEach(pc => pc.close());
         this.peers.clear();
         this.dataChannels.clear();
+    }
+
+    startStatsLoop(callback: (ping: number) => void) {
+        if (this.statsInterval) clearInterval(this.statsInterval);
+        this.statsInterval = setInterval(async () => {
+            let totalRtt = 0;
+            let count = 0;
+
+            for (const [_, pc] of this.peers) {
+                try {
+                    const stats = await pc.getStats();
+                    stats.forEach(report => {
+                        if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+                            totalRtt += report.currentRoundTripTime * 1000;
+                            count++;
+                        }
+                    });
+                } catch (e) {
+                    console.error("Failed to get stats:", e);
+                }
+            }
+
+            if (count > 0) {
+                callback(totalRtt / count);
+            } else {
+                callback(0);
+            }
+        }, 1000); // Update every second
     }
 }

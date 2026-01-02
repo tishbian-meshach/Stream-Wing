@@ -89,6 +89,25 @@ export class ViewerPeerManager {
     }
 
     cleanup() {
+        if (this.statsInterval) clearInterval(this.statsInterval);
         this.pc.close();
+    }
+
+    private statsInterval: any;
+
+    startStatsLoop(callback: (ping: number) => void) {
+        if (this.statsInterval) clearInterval(this.statsInterval);
+        this.statsInterval = setInterval(async () => {
+            try {
+                const stats = await this.pc.getStats();
+                stats.forEach(report => {
+                    if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+                        callback(report.currentRoundTripTime * 1000);
+                    }
+                });
+            } catch (e) {
+                console.error("Failed to get stats:", e);
+            }
+        }, 1000);
     }
 }
