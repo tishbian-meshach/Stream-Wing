@@ -86,8 +86,10 @@ export function HostRoom() {
 
     // Start stream
     const startStream = () => {
-        try {
-            if (videoRef.current && hostManager) {
+        if (!videoRef.current || !hostManager) return;
+
+        const playAndStream = () => {
+            try {
                 // @ts-ignore
                 const stream = videoRef.current.captureStream ? videoRef.current.captureStream() : (videoRef.current as any).mozCaptureStream?.();
 
@@ -96,15 +98,38 @@ export function HostRoom() {
                     return;
                 }
 
+                console.log("Starting stream with tracks:", stream.getTracks().length);
+                if (stream.getTracks().length === 0) {
+                    console.warn("Stream has no tracks, retrying in 500ms");
+                    setTimeout(() => startStream(), 500);
+                    return;
+                }
+
                 hostManager.setStream(stream);
                 setStreamActive(true);
-                videoRef.current.play();
+                // Handle play promise
+                const playPromise = videoRef.current!.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(e => console.error("Play failed:", e));
+                }
                 setIsPlaying(true);
                 // Ensure viewers start playing immediately
                 hostManager.broadcastSyncEvent({ action: 'play', time: 0, timestamp: Date.now() });
+            } catch (e) {
+                console.error("Failed to start stream:", e);
             }
-        } catch (e) {
-            console.error("Failed to start stream:", e);
+        };
+
+        if (videoRef.current.readyState >= 3) { // HAVE_FUTURE_DATA
+            playAndStream();
+        } else {
+            console.log("Waiting for video to be ready...");
+            videoRef.current.oncanplay = () => {
+                if (videoRef.current) {
+                    videoRef.current.oncanplay = null;
+                    playAndStream();
+                }
+            };
         }
     };
 
