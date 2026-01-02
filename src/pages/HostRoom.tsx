@@ -190,7 +190,7 @@ export function HostRoom() {
     return (
         <div className="min-h-screen bg-black text-white flex flex-col">
             {/* Header */}
-            <header className="fixed top-0 left-0 right-0 z-20 px-3 py-3 sm:px-4 sm:py-4 bg-gradient-to-b from-black/90 to-transparent">
+            <header className="fixed top-0 left-0 right-0 z-20 px-3 py-3 sm:px-4 sm:py-4 bg-gradient-to-b from-black/90 to-transparent safe-area-pt">
                 <div className="flex items-center justify-between gap-3">
                     <button
                         onClick={() => navigate('/')}

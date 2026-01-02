@@ -41,17 +41,58 @@ body {
 }
 
 /* Safe area utilities for mobile */
+.safe-area-pt {
+    padding-top: env(safe-area-inset-top, 0);
+}
+
 .safe-area-pb {
     padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
-.safe-area-pt {
+.safe-area-pl {
+    padding-left: env(safe-area-inset-left, 0);
+}
+
+.safe-area-pr {
+    padding-right: env(safe-area-inset-right, 0);
+}
+
+.safe-area-p {
     padding-top: env(safe-area-inset-top, 0);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    padding-left: env(safe-area-inset-left, 0);
+    padding-right: env(safe-area-inset-right, 0);
+}
+
+.safe-area-mt {
+    margin-top: env(safe-area-inset-top, 0);
+}
+
+.safe-area-mb {
+    margin-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.h-safe-area-inset-top {
+    height: env(safe-area-inset-top, 0);
 }
 
 .h-safe-area-inset-bottom {
     height: env(safe-area-inset-bottom, 0);
 }
+
+.top-safe-area {
+    top: env(safe-area-inset-top, 0);
+}
+
+.bottom-safe-area {
+    bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* Minimum safe area for older devices */
+.min-safe-area-pt {
+    padding-top: max(env(safe-area-inset-top, 0), 20px);
+}
+
 
 /* Scrollbar styling */
 ::-webkit-scrollbar {

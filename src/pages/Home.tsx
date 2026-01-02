@@ -32,7 +32,7 @@ export function Home() {
     };
 
     return (
-        <div className="min-h-screen bg-neutral-950 text-white flex flex-col">
+        <div className="min-h-screen bg-neutral-950 text-white flex flex-col safe-area-p">
             {/* Header */}
             <header className="px-4 py-6 sm:px-6 lg:px-8">
                 <div className="flex items-center gap-3">
