@@ -12,7 +12,7 @@ export function ViewerRoom() {
     const { roomId } = useParams<{ roomId: string }>();
     const location = useLocation();
     const navigate = useNavigate();
-    const peerId = location.state?.peerId || Math.random().toString(36).substr(2, 9);
+    const [peerId] = useState(() => location.state?.peerId || Math.random().toString(36).substr(2, 9));
 
     const { joinRoom, signaling, onSignalRef } = useRoom(peerId);
     const [_viewerManager, setViewerManager] = useState<ViewerPeerManager | null>(null);

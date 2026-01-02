@@ -12,7 +12,7 @@ export function HostRoom() {
     const { roomId } = useParams<{ roomId: string }>();
     const location = useLocation();
     const navigate = useNavigate();
-    const peerId = location.state?.peerId || Math.random().toString(36).substr(2, 9);
+    const [peerId] = useState(() => location.state?.peerId || Math.random().toString(36).substr(2, 9));
 
     const { viewers, hostRoom, signaling, onSignalRef } = useRoom(peerId);
     const [hostManager, setHostManager] = useState<HostPeerManager | null>(null);
