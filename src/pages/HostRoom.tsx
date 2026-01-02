@@ -7,6 +7,7 @@ import { Button } from '../components/Button';
 import { ConnectionStatus } from '../components/StatusBadge';
 import { VideoControls, DoubleTapOverlay } from '../components/VideoControls';
 import { FilmIcon, UploadIcon, ArrowLeftIcon, CopyIcon, ShareIcon } from '../components/Icons';
+import { shareContent, isNativePlatform } from '../lib/platform';
 
 export function HostRoom() {
     const { roomId } = useParams<{ roomId: string }>();
@@ -130,9 +131,25 @@ export function HostRoom() {
         }
     };
 
-    // Copy room ID
-    const copyRoomId = async () => {
-        if (roomId) {
+    // Share/Copy room ID
+    const shareRoomId = async () => {
+        if (!roomId) return;
+
+        const shareUrl = `${window.location.origin}/viewer/${roomId}`;
+
+        if (isNativePlatform()) {
+            // Use native share on Android/iOS
+            const success = await shareContent({
+                title: 'Join my StreamWing room',
+                text: `Join my watch party! Room ID: ${roomId}`,
+                url: shareUrl,
+            });
+            if (success) {
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+            }
+        } else {
+            // Web fallback - copy to clipboard
             await navigator.clipboard.writeText(roomId);
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
@@ -190,7 +207,7 @@ export function HostRoom() {
     return (
         <div className="min-h-screen bg-black text-white flex flex-col">
             {/* Header */}
-            <header className="fixed top-0 left-0 right-0 z-20 px-3 py-3 sm:px-4 sm:py-4 bg-gradient-to-b from-black/90 to-transparent safe-area-pt">
+            <header className="fixed top-0 left-0 right-0 z-20 px-3 sm:px-4 bg-gradient-to-b from-black/90 to-transparent safe-area-pt">
                 <div className="flex items-center justify-between gap-3">
                     <button
                         onClick={() => navigate('/')}
@@ -203,12 +220,12 @@ export function HostRoom() {
                     <ConnectionStatus viewerCount={viewers.length} roomId={roomId} isHost />
 
                     <button
-                        onClick={copyRoomId}
+                        onClick={shareRoomId}
                         className="p-2 hover:bg-neutral-800 rounded-lg transition-colors"
-                        aria-label="Copy room ID"
+                        aria-label="Share room"
                     >
                         {copied ? (
-                            <span className="text-green-400 text-sm">Copied</span>
+                            <span className="text-green-400 text-sm">Shared!</span>
                         ) : (
                             <ShareIcon className="w-5 h-5" />
                         )}
