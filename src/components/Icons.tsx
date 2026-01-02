@@ -97,3 +97,32 @@ export function ShareIcon({ className }: { className?: string }) {
         </svg>
     );
 }
+
+interface IconProps {
+    className?: string;
+    onClick?: () => void;
+}
+
+export function MessageSquareIcon({ className, ...props }: IconProps) {
+    return (
+        <svg className={cn('w-6 h-6', className)} fill="none" stroke="currentColor" viewBox="0 0 24 24" {...props}>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+        </svg>
+    );
+}
+
+export function MusicIcon({ className, ...props }: IconProps) {
+    return (
+        <svg className={cn('w-6 h-6', className)} fill="none" stroke="currentColor" viewBox="0 0 24 24" {...props}>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+        </svg>
+    );
+}
+
+export function CheckIcon({ className, ...props }: IconProps) {
+    return (
+        <svg className={cn('w-6 h-6', className)} fill="none" stroke="currentColor" viewBox="0 0 24 24" {...props}>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        </svg>
+    );
+}

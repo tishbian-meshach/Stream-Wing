@@ -14,12 +14,21 @@ export function OpenAppBanner() {
     }, []);
 
     const handleOpenApp = () => {
-        // Try to open via intent/universal link
-        // Reuse current URL but let the system handle it
-        window.location.href = window.location.href;
-        // If the intent filter is set up, reloading the same URL *should* trigger the app picker on Android
-        // Alternatively, use a custom scheme if we had one.
-        // Or fallback to Play Store link.
+        // Use custom scheme via Intent to force open app
+        // This avoids the browser "stay on same domain" logic
+        const currentPath = window.location.pathname; // e.g. /viewer/123
+        const packageId = 'com.example.p2pwatchparty';
+
+        // Construct Intent URL with custom scheme
+        // intent://<path>#Intent;scheme=streamwing;package=<package_id>;...
+        // Matches <data android:scheme="streamwing" /> in AndroidManifest
+
+        // Current URL as fallback
+        const fallbackUrl = window.location.href;
+
+        const intentUrl = `intent://${currentPath.replace(/^\//, '')}#Intent;scheme=streamwing;package=${packageId};S.browser_fallback_url=${encodeURIComponent(fallbackUrl)};end`;
+
+        window.location.href = intentUrl;
     };
 
     if (!isVisible) return null;

@@ -1,5 +1,6 @@
+import { cn } from '../lib/utils';
 import { Button } from './Button';
-import { FullscreenIcon, VolumeIcon } from './Icons';
+import { FullscreenIcon, VolumeIcon, MessageSquareIcon } from './Icons';
 
 interface ViewerControlsProps {
     onFullscreen: () => void;
@@ -7,6 +8,9 @@ interface ViewerControlsProps {
     onVolumeChange: (volume: number) => void;
     isMuted: boolean;
     onMuteToggle: () => void;
+    hasSubtitles?: boolean;
+    isSubtitleEnabled?: boolean;
+    onToggleSubtitle?: () => void;
 }
 
 export function ViewerControls({
@@ -15,6 +19,9 @@ export function ViewerControls({
     onVolumeChange,
     isMuted,
     onMuteToggle,
+    hasSubtitles,
+    isSubtitleEnabled,
+    onToggleSubtitle,
 }: ViewerControlsProps) {
     return (
         <div className="w-full bg-gradient-to-t from-black/90 via-black/60 to-transparent px-4 pt-4 safe-area-pb">
@@ -35,6 +42,21 @@ export function ViewerControls({
                         <VolumeIcon className="w-5 h-5" />
                     )}
                 </Button>
+
+                {/* Subtitle Toggle Button */}
+                {hasSubtitles && onToggleSubtitle && (
+                    <Button
+                        onClick={onToggleSubtitle}
+                        variant="ghost"
+                        size="icon"
+                        className={cn("transition-colors",
+                            isSubtitleEnabled ? "text-indigo-400" : "text-white"
+                        )}
+                        aria-label="Toggle Subtitles"
+                    >
+                        <MessageSquareIcon className="w-6 h-6" />
+                    </Button>
+                )}
 
                 {/* Volume Slider */}
                 <div className="flex items-center gap-2 w-24 sm:w-32">

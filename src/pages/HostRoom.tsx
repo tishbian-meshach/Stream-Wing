@@ -7,6 +7,7 @@ import { ConnectionStatus } from '../components/StatusBadge';
 import { VideoControls, DoubleTapOverlay } from '../components/VideoControls';
 import { FilmIcon, UploadIcon, ArrowLeftIcon, ShareIcon } from '../components/Icons';
 import { shareContent, isNativePlatform, enterImmersiveMode, exitImmersiveMode } from '../lib/platform';
+import { srtToVtt, addSubtitleTrack, toggleSubtitleTrack } from '../lib/subtitleUtils';
 
 export function HostRoom() {
     const { roomId } = useParams<{ roomId: string }>();
@@ -176,6 +177,97 @@ export function HostRoom() {
             if (videoRef.current.currentTime === 0) {
                 videoRef.current.currentTime = 0.001;
             }
+            // Check for audio tracks
+            updateAudioTracks();
+        }
+    };
+
+    // Subtitles
+    const subtitleInputRef = useRef<HTMLInputElement>(null);
+    const [hasSubtitles, setHasSubtitles] = useState(false);
+    const [isSubtitleEnabled, setIsSubtitleEnabled] = useState(false);
+
+    const handleUploadSubtitle = () => {
+        subtitleInputRef.current?.click();
+    };
+
+    const handleToggleSubtitle = () => {
+        if (!videoRef.current || !hasSubtitles) return;
+        const newState = !isSubtitleEnabled;
+        setIsSubtitleEnabled(newState);
+        toggleSubtitleTrack(videoRef.current, newState);
+    };
+
+    // Audio Tracks
+    const [audioTracks, setAudioTracks] = useState<any[]>([]);
+
+    const updateAudioTracks = () => {
+        if (!videoRef.current) return;
+        // @ts-ignore
+        const tracks = videoRef.current.audioTracks;
+        if (tracks) {
+            const list = [];
+            for (let i = 0; i < tracks.length; i++) {
+                list.push({
+                    label: tracks[i].label || `Track ${i + 1}`,
+                    language: tracks[i].language,
+                    enabled: tracks[i].enabled
+                });
+            }
+            setAudioTracks(list);
+        }
+    };
+
+    const handleAudioTrackChange = () => {
+        if (!videoRef.current) return;
+        // @ts-ignore
+        const tracks = videoRef.current.audioTracks;
+        if (!tracks) return;
+
+        // Find current enabled index
+        let currentIndex = -1;
+        for (let i = 0; i < tracks.length; i++) {
+            if (tracks[i].enabled) {
+                currentIndex = i;
+                break;
+            }
+        }
+
+        // Cycle to next
+        const nextIndex = (currentIndex + 1) % tracks.length;
+
+        // Enabling one usually disables others, but let's be explicit if needed
+        for (let i = 0; i < tracks.length; i++) {
+            tracks[i].enabled = i === nextIndex;
+        }
+
+        updateAudioTracks(); // Refresh state
+    };
+
+    const handleSubtitleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !videoRef.current) return;
+
+        const text = await file.text();
+        let vttContent = text;
+
+        if (file.name.endsWith('.srt')) {
+            vttContent = srtToVtt(text);
+        }
+
+        // Add locally
+        addSubtitleTrack(videoRef.current, vttContent, 'English');
+        setHasSubtitles(true);
+        setIsSubtitleEnabled(true); // Auto enable on load
+
+        // Broadcast to viewers
+        if (hostManager) {
+            hostManager.broadcastSyncEvent({
+                action: 'subtitle',
+                content: vttContent,
+                label: 'English',
+                timestamp: Date.now()
+            });
         }
     };
 
@@ -326,6 +418,15 @@ export function HostRoom() {
                     onChange={handleFileChange}
                 />
 
+                {/* Hidden file input for subtitles */}
+                <input
+                    ref={subtitleInputRef}
+                    type="file"
+                    accept=".srt,.vtt"
+                    className="hidden"
+                    onChange={handleSubtitleChange}
+                />
+
                 {/* Empty State */}
                 {!file && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-950 px-6 z-20">
@@ -365,6 +466,12 @@ export function HostRoom() {
                         onChangeFile={handleChangeFile}
                         onSkipForward={handleSkipForward}
                         onSkipBackward={handleSkipBackward}
+                        onUploadSubtitle={handleUploadSubtitle}
+                        onToggleSubtitle={handleToggleSubtitle}
+                        hasSubtitles={hasSubtitles}
+                        isSubtitleEnabled={isSubtitleEnabled}
+                        audioTracks={audioTracks}
+                        onAudioTrackChange={handleAudioTrackChange}
                     />
                 </div>
             )}

@@ -26,6 +26,7 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="stream-wing.vercel.app" android:pathPrefix="/viewer" />
                 <data android:scheme="http" android:host="stream-wing.vercel.app" android:pathPrefix="/viewer" />
+                <data android:scheme="streamwing" />
             </intent-filter>
         </activity>
 

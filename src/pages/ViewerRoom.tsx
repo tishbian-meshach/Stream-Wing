@@ -4,6 +4,7 @@ import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useRoom } from '../hooks/useRoom';
 import { ViewerPeerManager } from '../webrtc/viewer';
 import { enterImmersiveMode, exitImmersiveMode } from '../lib/platform';
+import { addSubtitleTrack, toggleSubtitleTrack } from '../lib/subtitleUtils';
 import { ConnectionStatus } from '../components/StatusBadge';
 import { ViewerControls } from '../components/ViewerControls';
 import { ArrowLeftIcon, WifiIcon } from '../components/Icons';
@@ -29,6 +30,15 @@ export function ViewerRoom() {
     const [volume, setVolume] = useState(1);
     const [isMuted, setIsMuted] = useState(true); // Default to muted for autoplay
     const [ping, setPing] = useState(0);
+    const [hasSubtitles, setHasSubtitles] = useState(false);
+    const [isSubtitleEnabled, setIsSubtitleEnabled] = useState(false);
+
+    const handleToggleSubtitle = () => {
+        if (!videoRef.current || !hasSubtitles) return;
+        const newState = !isSubtitleEnabled;
+        setIsSubtitleEnabled(newState);
+        toggleSubtitleTrack(videoRef.current, newState);
+    };
 
     // Auto-join
     useEffect(() => {
@@ -93,6 +103,11 @@ export function ViewerRoom() {
                     videoRef.current.currentTime = event.time;
                 } else if (event.action === 'seek') {
                     videoRef.current.currentTime = event.time;
+                } else if (event.action === 'subtitle') {
+                    console.log("Received subtitle:", event.label);
+                    addSubtitleTrack(videoRef.current, event.content, event.label);
+                    setHasSubtitles(true);
+                    setIsSubtitleEnabled(true);
                 }
             }
         );
@@ -188,7 +203,7 @@ export function ViewerRoom() {
             >
                 {/* Initial Connection Loading */}
                 {status !== 'streaming' && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black/90 gap-4 px-6">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black gap-4 px-6">
                         <div className="relative">
                             <div className="w-16 h-16 rounded-full border-4 border-neutral-700 border-t-indigo-500 animate-spin" />
                             <WifiIcon className="absolute inset-0 m-auto w-6 h-6 text-gray-400" />
@@ -209,7 +224,7 @@ export function ViewerRoom() {
 
                 <video
                     ref={videoRef}
-                    className="w-full h-full object-contain"
+                    className={`w-full h-full object-contain transition-opacity duration-500 ${status === 'streaming' ? 'opacity-100' : 'opacity-0'}`}
                     controls={false}
                     playsInline
                     autoPlay
@@ -229,6 +244,9 @@ export function ViewerRoom() {
                         onVolumeChange={handleVolumeChange}
                         isMuted={isMuted}
                         onMuteToggle={handleMuteToggle}
+                        hasSubtitles={hasSubtitles}
+                        isSubtitleEnabled={isSubtitleEnabled}
+                        onToggleSubtitle={handleToggleSubtitle}
                     />
                 </div>
             )}

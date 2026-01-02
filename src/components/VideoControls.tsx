@@ -1,7 +1,7 @@
 import React, { useRef, useState, useCallback } from 'react';
 import { cn } from '../lib/utils';
 import { Button } from './Button';
-import { PlayIcon, PauseIcon, FullscreenIcon, FilmIcon } from './Icons';
+import { PlayIcon, PauseIcon, FullscreenIcon, FilmIcon, MessageSquareIcon, MusicIcon } from './Icons';
 
 interface VideoControlsProps {
     isPlaying: boolean;
@@ -17,6 +17,13 @@ interface VideoControlsProps {
     onChangeFile?: () => void;
     onSkipForward?: () => void;
     onSkipBackward?: () => void;
+    // Media Enhancements
+    onUploadSubtitle?: () => void;
+    onToggleSubtitle?: () => void;
+    hasSubtitles?: boolean;
+    isSubtitleEnabled?: boolean;
+    audioTracks?: any[];
+    onAudioTrackChange?: () => void;
 }
 
 // Skip indicator component
@@ -63,6 +70,12 @@ export function VideoControls({
     onChangeFile,
     onSkipForward,
     onSkipBackward,
+    onUploadSubtitle,
+    onToggleSubtitle,
+    hasSubtitles,
+    isSubtitleEnabled,
+    audioTracks,
+    onAudioTrackChange,
 }: VideoControlsProps) {
     const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
     const progressBarRef = useRef<HTMLDivElement>(null);
@@ -260,6 +273,37 @@ export function VideoControls({
                     </Button>
                 )}
             </div>
+
+            {/* Secondary Controls Row (Subtitles/Audio) */}
+            {(onUploadSubtitle || hasSubtitles || (audioTracks && audioTracks.length > 1)) && (
+                <div className="flex items-center justify-center gap-4 mt-2">
+                    {(onUploadSubtitle || hasSubtitles) && (
+                        <Button
+                            onClick={onUploadSubtitle && !hasSubtitles ? onUploadSubtitle : onToggleSubtitle}
+                            variant="ghost"
+                            size="sm"
+                            className={cn("text-xs transition-colors",
+                                isSubtitleEnabled ? "text-indigo-400 hover:text-indigo-300" : "text-white/70 hover:text-white"
+                            )}
+                        >
+                            <MessageSquareIcon className="w-4 h-4 mr-1.5" />
+                            {onUploadSubtitle && !hasSubtitles ? 'Add Subs' : (isSubtitleEnabled ? 'CC On' : 'CC Off')}
+                        </Button>
+                    )}
+
+                    {audioTracks && audioTracks.length > 1 && onAudioTrackChange && (
+                        <Button
+                            onClick={onAudioTrackChange}
+                            variant="ghost"
+                            size="sm"
+                            className="text-xs text-white/70 hover:text-white"
+                        >
+                            <MusicIcon className="w-4 h-4 mr-1.5" />
+                            Audio
+                        </Button>
+                    )}
+                </div>
+            )}
         </div>
     );
 }
