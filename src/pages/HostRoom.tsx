@@ -143,9 +143,10 @@ export function HostRoom() {
     const togglePlay = () => {
         if (!videoRef.current || !hostManager) return;
         if (videoRef.current.paused) {
-            videoRef.current.play();
-            setIsPlaying(true);
-            hostManager.broadcastSyncEvent({ action: 'play', time: videoRef.current.currentTime, timestamp: Date.now() });
+            // "Super Power" Play: Force a stream restart/re-capture to fix any sync/connection issues
+            // This acts like a "server restart" for the P2P connection
+            console.log("Super Play triggered: Refreshing stream context");
+            startStream();
         } else {
             videoRef.current.pause();
             setIsPlaying(false);
