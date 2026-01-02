@@ -308,7 +308,7 @@ export function HostRoom() {
 
             {/* Controls - Overlay */}
             {file && (
-                <div className={`fixed bottom-0 left-0 right-0 z-30 transition-opacity duration-300 safe-area-pb ${!_showControls ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                <div className={`fixed bottom-0 left-0 right-0 z-30 transition-opacity duration-300 ${!_showControls ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                     <VideoControls
                         isPlaying={isPlaying}
                         onPlayPause={togglePlay}
