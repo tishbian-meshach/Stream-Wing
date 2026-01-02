@@ -65,6 +65,14 @@ export function HostRoom() {
             setFile(selected);
             const url = URL.createObjectURL(selected);
             videoRef.current.src = url;
+
+            // If we were already streaming, restart the stream with the new file
+            // give it a moment to load
+            if (streamActive) {
+                setTimeout(() => {
+                    startStream();
+                }, 500);
+            }
         }
     };
 

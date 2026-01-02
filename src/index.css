@@ -122,7 +122,7 @@ body {
 /* Video element fixes */
 video {
     max-width: 100%;
-    height: auto;
+    /* height: auto; - Removed to allow h-full to work */
 }
 
 video::-webkit-media-controls {
