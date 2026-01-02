@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Video, Users } from 'lucide-react';
 import { useRoom } from '../hooks/useRoom';
+import { Button } from '../components/Button';
+import { Input } from '../components/Input';
+import { VideoIcon, UsersIcon, WifiIcon } from '../components/Icons';
 
-// Generate a random peerId for now, or persist it?
 const peerId = Math.random().toString(36).substr(2, 9);
 
 export function Home() {
@@ -19,7 +20,6 @@ export function Home() {
             navigate(`/host/${roomId}`, { state: { peerId } });
         } catch (e) {
             console.error(e);
-            alert('Failed to create room');
         } finally {
             setLoading(false);
         }
@@ -32,59 +32,93 @@ export function Home() {
     };
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-neutral-900 text-white p-4">
-            <div className="max-w-md w-full space-y-8">
-                <div className="text-center">
-                    <h1 className="text-4xl font-bold tracking-tight text-white mb-2">
-                        P2P Watch Party
-                    </h1>
-                    <p className="text-gray-400">
-                        Stream local videos to friends directly. No servers.
-                    </p>
+        <div className="min-h-screen bg-neutral-950 text-white flex flex-col">
+            {/* Header */}
+            <header className="px-4 py-6 sm:px-6 lg:px-8">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                        <WifiIcon className="w-5 h-5" />
+                    </div>
+                    <span className="text-xl font-bold">StreamWing</span>
                 </div>
+            </header>
 
-                <div className="grid grid-cols-1 gap-4">
-                    <button
-                        onClick={handleCreate}
-                        disabled={loading}
-                        className="flex items-center justify-center w-full py-4 px-6 bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors text-lg font-medium shadow-lg disabled:opacity-50"
-                    >
-                        <Video className="w-6 h-6 mr-2" />
-                        {loading ? 'Creating...' : 'Start Hosting'}
-                    </button>
-
-                    <div className="relative">
-                        <div className="absolute inset-0 flex items-center">
-                            <span className="w-full border-t border-gray-700" />
-                        </div>
-                        <div className="relative flex justify-center text-sm">
-                            <span className="bg-neutral-900 px-2 text-gray-500">Or join existing</span>
-                        </div>
+            {/* Main Content */}
+            <main className="flex-1 flex flex-col items-center justify-center px-4 pb-8 sm:px-6">
+                <div className="w-full max-w-sm space-y-8">
+                    {/* Hero */}
+                    <div className="text-center space-y-3">
+                        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
+                            Watch Together
+                        </h1>
+                        <p className="text-gray-400 text-base sm:text-lg">
+                            Stream videos to friends directly. No servers, no uploads.
+                        </p>
                     </div>
 
-                    <form onSubmit={handleJoin} className="space-y-4">
-                        <div>
-                            <label htmlFor="roomId" className="sr-only">Room ID</label>
-                            <input
-                                id="roomId"
+                    {/* Actions */}
+                    <div className="space-y-4">
+                        <Button
+                            onClick={handleCreate}
+                            loading={loading}
+                            icon={<VideoIcon className="w-5 h-5" />}
+                            size="lg"
+                            className="w-full"
+                        >
+                            Start Hosting
+                        </Button>
+
+                        {/* Divider */}
+                        <div className="relative">
+                            <div className="absolute inset-0 flex items-center">
+                                <div className="w-full border-t border-neutral-800" />
+                            </div>
+                            <div className="relative flex justify-center text-sm">
+                                <span className="bg-neutral-950 px-3 text-gray-500">or join a room</span>
+                            </div>
+                        </div>
+
+                        {/* Join Form */}
+                        <form onSubmit={handleJoin} className="space-y-4">
+                            <Input
                                 type="text"
-                                required
                                 value={joinId}
                                 onChange={(e) => setJoinId(e.target.value)}
                                 placeholder="Enter Room ID"
-                                className="block w-full rounded-lg border-0 bg-gray-800 py-4 px-4 text-white shadow-sm ring-1 ring-inset ring-gray-700 placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
+                                required
                             />
-                        </div>
-                        <button
-                            type="submit"
-                            className="flex items-center justify-center w-full py-4 px-6 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors text-lg font-medium shadow-lg"
-                        >
-                            <Users className="w-6 h-6 mr-2" />
-                            Join Room
-                        </button>
-                    </form>
+                            <Button
+                                type="submit"
+                                variant="secondary"
+                                icon={<UsersIcon className="w-5 h-5" />}
+                                size="lg"
+                                className="w-full"
+                            >
+                                Join Room
+                            </Button>
+                        </form>
+                    </div>
+
+                    {/* Features */}
+                    <div className="grid grid-cols-3 gap-3 pt-4">
+                        {[
+                            { icon: '256-bit', label: 'Encrypted' },
+                            { icon: 'P2P', label: 'Direct' },
+                            { icon: '5s', label: 'Latency' },
+                        ].map((feature, i) => (
+                            <div key={i} className="text-center p-3 rounded-xl bg-neutral-900/50">
+                                <div className="text-lg font-bold text-indigo-400">{feature.icon}</div>
+                                <div className="text-xs text-gray-500 mt-1">{feature.label}</div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
-            </div>
+            </main>
+
+            {/* Footer */}
+            <footer className="px-4 py-4 text-center text-xs text-gray-600">
+                Peer-to-peer streaming. Your data stays yours.
+            </footer>
         </div>
     );
 }

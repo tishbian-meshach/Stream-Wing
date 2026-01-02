@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { KeepAwake } from '@capacitor-community/keep-awake';
-
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useRoom } from '../hooks/useRoom';
 import { HostPeerManager } from '../webrtc/host';
-import { Play, Pause, Film } from 'lucide-react';
-import { SignalingService } from '../services/signaling'; // Import specifically
+import { Button } from '../components/Button';
+import { ConnectionStatus } from '../components/StatusBadge';
+import { VideoControls } from '../components/VideoControls';
+import { FilmIcon, UploadIcon, ArrowLeftIcon, CopyIcon, ShareIcon } from '../components/Icons';
 
 export function HostRoom() {
     const { roomId } = useParams<{ roomId: string }>();
@@ -13,13 +14,17 @@ export function HostRoom() {
     const navigate = useNavigate();
     const peerId = location.state?.peerId || Math.random().toString(36).substr(2, 9);
 
-    const { viewers, isHost, hostRoom, signaling, onSignalRef } = useRoom(peerId);
+    const { viewers, hostRoom, signaling, onSignalRef } = useRoom(peerId);
     const [hostManager, setHostManager] = useState<HostPeerManager | null>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const [file, setFile] = useState<File | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
+    const [streamActive, setStreamActive] = useState(false);
+    const [currentTime, setCurrentTime] = useState(0);
+    const [duration, setDuration] = useState(0);
+    const [copied, setCopied] = useState(false);
 
-    // Initialize Room (Host Mode) - Subscribe to the signaling channel
+    // Subscribe to room
     useEffect(() => {
         if (roomId) {
             console.log("Host subscribing to room:", roomId);
@@ -31,7 +36,6 @@ export function HostRoom() {
     useEffect(() => {
         if (!roomId) return;
 
-        // Prevent Sleep
         const keepAwake = async () => {
             try { await KeepAwake.keepAwake(); } catch (e) { console.warn('KeepAwake not supported', e); }
         };
@@ -40,7 +44,6 @@ export function HostRoom() {
         const manager = new HostPeerManager(signaling, roomId);
         setHostManager(manager);
 
-        // Hook up signal listener
         if (onSignalRef.current !== undefined) {
             onSignalRef.current = (data, from) => manager.handleSignal(data, from);
         }
@@ -52,36 +55,30 @@ export function HostRoom() {
         };
     }, [roomId, signaling]);
 
-    // Handle Video Selection
+    // Handle file selection
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const selected = e.target.files?.[0];
         if (selected && videoRef.current) {
             setFile(selected);
             const url = URL.createObjectURL(selected);
             videoRef.current.src = url;
-
-            // Capture stream
-            // Note: captureStream might need a play() first or be initiated
-            // videoRef.current.play().then(() => videoRef.current.pause()); 
         }
     };
 
+    // Start stream
     const startStream = () => {
         try {
             if (videoRef.current && hostManager) {
                 // @ts-ignore
-                const stream = videoRef.current.captureStream ? videoRef.current.captureStream() : (videoRef.current as any).mozCaptureStream ? (videoRef.current as any).mozCaptureStream() : null;
+                const stream = videoRef.current.captureStream ? videoRef.current.captureStream() : (videoRef.current as any).mozCaptureStream?.();
 
                 if (!stream) {
                     console.error("captureStream not supported");
-                    alert("Browser does not support captureStream");
                     return;
                 }
 
                 hostManager.setStream(stream);
-                console.log("Stream set and broadcasting");
-
-                // Force play to ensure stream data flows
+                setStreamActive(true);
                 videoRef.current.play();
                 setIsPlaying(true);
             }
@@ -90,91 +87,150 @@ export function HostRoom() {
         }
     };
 
-    // Handle Viewers
+    // Handle viewers
     useEffect(() => {
         if (!hostManager) return;
-
-        // Check for new viewers (naive diffing)
-        // Ideally we track which ones we've already added.
-        // HostPeerManager.handleViewerJoin checks duplication internally.
-        viewers.forEach(v => {
-            hostManager.handleViewerJoin(v);
-        });
+        viewers.forEach(v => hostManager.handleViewerJoin(v));
     }, [viewers, hostManager]);
 
-    // Sync Controls
+    // Toggle play/pause
     const togglePlay = () => {
         if (!videoRef.current || !hostManager) return;
         if (videoRef.current.paused) {
             videoRef.current.play();
             setIsPlaying(true);
-            hostManager.broadcastSyncEvent({
-                action: 'play',
-                time: videoRef.current.currentTime,
-                timestamp: Date.now()
-            });
+            hostManager.broadcastSyncEvent({ action: 'play', time: videoRef.current.currentTime, timestamp: Date.now() });
         } else {
             videoRef.current.pause();
             setIsPlaying(false);
-            hostManager.broadcastSyncEvent({
-                action: 'pause',
-                time: videoRef.current.currentTime,
-                timestamp: Date.now()
-            });
+            hostManager.broadcastSyncEvent({ action: 'pause', time: videoRef.current.currentTime, timestamp: Date.now() });
         }
     };
 
-    const handleSeek = () => {
-        // similar logic for seek
+    // Seek
+    const handleSeek = (time: number) => {
         if (!videoRef.current || !hostManager) return;
-        hostManager.broadcastSyncEvent({
-            action: 'seek',
-            time: videoRef.current.currentTime,
-            timestamp: Date.now()
-        });
+        videoRef.current.currentTime = time;
+        hostManager.broadcastSyncEvent({ action: 'seek', time, timestamp: Date.now() });
+    };
+
+    // Video time updates
+    const handleTimeUpdate = () => {
+        if (videoRef.current) {
+            setCurrentTime(videoRef.current.currentTime);
+        }
+    };
+
+    const handleLoadedMetadata = () => {
+        if (videoRef.current) {
+            setDuration(videoRef.current.duration);
+        }
+    };
+
+    // Copy room ID
+    const copyRoomId = async () => {
+        if (roomId) {
+            await navigator.clipboard.writeText(roomId);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        }
+    };
+
+    // Fullscreen
+    const handleFullscreen = () => {
+        videoRef.current?.requestFullscreen?.();
     };
 
     return (
-        <div className="flex flex-col h-screen bg-black text-white">
-            <header className="fixed top-0 w-full bg-gradient-to-b from-black/80 to-transparent p-4 z-10 flex justify-between items-center">
-                <div>
-                    <span className="bg-red-600 px-2 py-1 rounded text-xs font-bold mr-2">LIVE</span>
-                    <span className="font-mono text-sm">{roomId}</span>
-                </div>
-                <div className="text-sm text-gray-400">
-                    {viewers.length} Viewer(s)
+        <div className="min-h-screen bg-black text-white flex flex-col">
+            {/* Header */}
+            <header className="fixed top-0 left-0 right-0 z-20 px-3 py-3 sm:px-4 sm:py-4 bg-gradient-to-b from-black/90 to-transparent">
+                <div className="flex items-center justify-between gap-3">
+                    <button
+                        onClick={() => navigate('/')}
+                        className="p-2 -ml-2 hover:bg-neutral-800 rounded-lg transition-colors"
+                        aria-label="Go back"
+                    >
+                        <ArrowLeftIcon className="w-5 h-5" />
+                    </button>
+
+                    <ConnectionStatus viewerCount={viewers.length} roomId={roomId} isHost />
+
+                    <button
+                        onClick={copyRoomId}
+                        className="p-2 hover:bg-neutral-800 rounded-lg transition-colors"
+                        aria-label="Copy room ID"
+                    >
+                        {copied ? (
+                            <span className="text-green-400 text-sm">Copied</span>
+                        ) : (
+                            <ShareIcon className="w-5 h-5" />
+                        )}
+                    </button>
                 </div>
             </header>
 
-            <main className="flex-1 flex items-center justify-center relative">
+            {/* Video Area */}
+            <main className="flex-1 flex items-center justify-center pt-16 pb-32">
                 <video
                     ref={videoRef}
-                    className="w-full max-h-screen object-contain"
-                    controls={false} // Custom controls
-                    onSeeked={handleSeek}
+                    className="w-full h-full max-h-[calc(100vh-12rem)] object-contain"
+                    controls={false}
                     playsInline
+                    onTimeUpdate={handleTimeUpdate}
+                    onLoadedMetadata={handleLoadedMetadata}
+                    onSeeked={() => {
+                        if (videoRef.current && hostManager) {
+                            hostManager.broadcastSyncEvent({ action: 'seek', time: videoRef.current.currentTime, timestamp: Date.now() });
+                        }
+                    }}
                 />
 
+                {/* Empty State */}
                 {!file && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/90 gap-4">
-                        <Film className="w-16 h-16 text-gray-500" />
-                        <label className="cursor-pointer bg-indigo-600 px-6 py-3 rounded-lg hover:bg-indigo-700 transition">
-                            Select Video File
-                            <input type="file" accept="video/*" className="hidden" onChange={handleFileChange} />
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-950/95 gap-6 px-6">
+                        <div className="w-20 h-20 rounded-full bg-neutral-800 flex items-center justify-center">
+                            <FilmIcon className="w-10 h-10 text-gray-500" />
+                        </div>
+                        <div className="text-center space-y-2">
+                            <h2 className="text-xl font-semibold">Select a Video</h2>
+                            <p className="text-gray-400 text-sm max-w-xs">
+                                Choose a video file from your device to start streaming
+                            </p>
+                        </div>
+                        <label className="cursor-pointer">
+                            <Button
+                                as="span"
+                                icon={<UploadIcon className="w-5 h-5" />}
+                                size="lg"
+                            >
+                                Choose File
+                            </Button>
+                            <input
+                                type="file"
+                                accept="video/*"
+                                className="hidden"
+                                onChange={handleFileChange}
+                            />
                         </label>
                     </div>
                 )}
             </main>
 
+            {/* Controls */}
             {file && (
-                <div className="fixed bottom-0 w-full p-8 bg-gradient-to-t from-black/90 to-transparent flex justify-center gap-6 pb-12">
-                    <button onClick={startStream} className="bg-gray-800 p-3 rounded-full hover:bg-gray-700">
-                        Start Stream (Internal)
-                    </button>
-                    <button onClick={togglePlay} className="bg-white text-black p-4 rounded-full hover:bg-gray-200 shadow-lg scale-100 active:scale-95 transition-transform">
-                        {isPlaying ? <Pause className="fill-current" /> : <Play className="fill-current ml-1" />}
-                    </button>
-                    {/* Add Scrubber/Seekbar here */}
+                <div className="fixed bottom-0 left-0 right-0 z-20 safe-area-pb">
+                    <VideoControls
+                        isPlaying={isPlaying}
+                        onPlayPause={togglePlay}
+                        onFullscreen={handleFullscreen}
+                        currentTime={currentTime}
+                        duration={duration}
+                        onSeek={handleSeek}
+                        showStartStream={!streamActive}
+                        onStartStream={startStream}
+                        streamActive={streamActive}
+                    />
                 </div>
             )}
         </div>
