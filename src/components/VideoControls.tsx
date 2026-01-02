@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '../lib/utils';
 import { Button } from './Button';
-import { PlayIcon, PauseIcon, FullscreenIcon, VolumeIcon } from './Icons';
+import { PlayIcon, PauseIcon, FullscreenIcon, FilmIcon } from './Icons';
 
 interface VideoControlsProps {
     isPlaying: boolean;
@@ -14,6 +14,7 @@ interface VideoControlsProps {
     showStartStream?: boolean;
     onStartStream?: () => void;
     streamActive?: boolean;
+    onChangeFile?: () => void;
 }
 
 export function VideoControls({
@@ -27,6 +28,7 @@ export function VideoControls({
     showStartStream = false,
     onStartStream,
     streamActive = false,
+    onChangeFile,
 }: VideoControlsProps) {
     const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
@@ -69,6 +71,18 @@ export function VideoControls({
 
             {/* Controls */}
             <div className="flex items-center justify-center gap-3 sm:gap-4">
+                {/* Change File Button */}
+                {onChangeFile && streamActive && (
+                    <Button
+                        onClick={onChangeFile}
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Change video file"
+                    >
+                        <FilmIcon className="w-5 h-5" />
+                    </Button>
+                )}
+
                 {showStartStream && !streamActive && (
                     <Button
                         onClick={onStartStream}

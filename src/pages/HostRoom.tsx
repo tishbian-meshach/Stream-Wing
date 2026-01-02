@@ -23,6 +23,7 @@ export function HostRoom() {
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
     const [copied, setCopied] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Subscribe to room
     useEffect(() => {
@@ -141,6 +142,19 @@ export function HostRoom() {
         videoRef.current?.requestFullscreen?.();
     };
 
+    // Handle video ended - sync to viewers
+    const handleVideoEnded = () => {
+        setIsPlaying(false);
+        if (hostManager) {
+            hostManager.broadcastSyncEvent({ action: 'pause', time: 0, timestamp: Date.now() });
+        }
+    };
+
+    // Change video file
+    const handleChangeFile = () => {
+        fileInputRef.current?.click();
+    };
+
     return (
         <div className="min-h-screen bg-black text-white flex flex-col">
             {/* Header */}
@@ -184,6 +198,16 @@ export function HostRoom() {
                             hostManager.broadcastSyncEvent({ action: 'seek', time: videoRef.current.currentTime, timestamp: Date.now() });
                         }
                     }}
+                    onEnded={handleVideoEnded}
+                />
+
+                {/* Hidden file input for changing video */}
+                <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="video/*"
+                    className="hidden"
+                    onChange={handleFileChange}
                 />
 
                 {/* Empty State */}
@@ -198,14 +222,9 @@ export function HostRoom() {
                                 Choose a video file from your device to start streaming
                             </p>
                         </div>
-                        <label className="cursor-pointer">
-                            <Button
-                                as="span"
-                                icon={<UploadIcon className="w-5 h-5" />}
-                                size="lg"
-                            >
-                                Choose File
-                            </Button>
+                        <label className="cursor-pointer inline-flex items-center justify-center gap-2 px-6 py-3.5 text-lg font-medium bg-indigo-600 text-white hover:bg-indigo-500 rounded-xl transition-all duration-200 active:scale-95">
+                            <UploadIcon className="w-5 h-5" />
+                            Choose File
                             <input
                                 type="file"
                                 accept="video/*"
@@ -213,6 +232,7 @@ export function HostRoom() {
                                 onChange={handleFileChange}
                             />
                         </label>
+
                     </div>
                 )}
             </main>
@@ -230,6 +250,7 @@ export function HostRoom() {
                         showStartStream={!streamActive}
                         onStartStream={startStream}
                         streamActive={streamActive}
+                        onChangeFile={handleChangeFile}
                     />
                 </div>
             )}
