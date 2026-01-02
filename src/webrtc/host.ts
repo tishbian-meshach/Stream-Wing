@@ -144,8 +144,6 @@ export class HostPeerManager {
 
             if (count > 0) {
                 callback(totalRtt / count);
-            } else {
-                callback(0);
             }
         }, 1000); // Update every second
     }

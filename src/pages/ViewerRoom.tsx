@@ -3,7 +3,7 @@ import { KeepAwake } from '@capacitor-community/keep-awake';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useRoom } from '../hooks/useRoom';
 import { ViewerPeerManager } from '../webrtc/viewer';
-import { StatusBadge, ConnectionStatus } from '../components/StatusBadge';
+import { ConnectionStatus } from '../components/StatusBadge';
 import { ViewerControls } from '../components/ViewerControls';
 import { ArrowLeftIcon, WifiIcon } from '../components/Icons';
 
@@ -165,9 +165,8 @@ export function ViewerRoom() {
                         <ArrowLeftIcon className="w-6 h-6" />
                     </button>
 
-                    <div className="flex items-center gap-2">
-                        <StatusBadge status={status} />
-                        <ConnectionStatus viewerCount={0} roomId={roomId} ping={ping} />
+                    <div className="flex items-center">
+                        <ConnectionStatus viewerCount={0} roomId={roomId} ping={ping} status={status} />
                     </div>
 
                     <div className="w-10" />
