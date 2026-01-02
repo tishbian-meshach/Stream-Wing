@@ -1,5 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import { Share } from '@capacitor/share';
+import { ScreenOrientation } from '@capacitor/screen-orientation';
+import { StatusBar } from '@capacitor/status-bar';
 
 /**
  * Check if running on native platform (Android/iOS)
@@ -27,6 +29,60 @@ export function isIOS(): boolean {
  */
 export function isWeb(): boolean {
     return Capacitor.getPlatform() === 'web';
+}
+
+/**
+ * Enter Immersive Landscape Mode
+ * Rotates screen to landscape and hides status bar
+ */
+export async function enterImmersiveMode(): Promise<void> {
+    if (isNativePlatform()) {
+        try {
+            await ScreenOrientation.lock({ orientation: 'landscape' });
+            await StatusBar.hide();
+        } catch (e) {
+            console.error('Failed to enter immersive mode:', e);
+        }
+    } else {
+        // Web fallback - standard fullscreen
+        try {
+            if (document.documentElement.requestFullscreen) {
+                await document.documentElement.requestFullscreen();
+            }
+            if (screen.orientation && (screen.orientation as any).lock) {
+                await (screen.orientation as any).lock('landscape').catch(() => { });
+            }
+        } catch (e) {
+            console.warn('Web immersive mode failed:', e);
+        }
+    }
+}
+
+/**
+ * Exit Immersive Mode
+ * Unlocks orientation (returns to portrait usually) and shows status bar
+ */
+export async function exitImmersiveMode(): Promise<void> {
+    if (isNativePlatform()) {
+        try {
+            await ScreenOrientation.unlock();
+            await StatusBar.show();
+        } catch (e) {
+            console.error('Failed to exit immersive mode:', e);
+        }
+    } else {
+        // Web fallback
+        try {
+            if (document.exitFullscreen) {
+                await document.exitFullscreen();
+            }
+            if (screen.orientation && screen.orientation.unlock) {
+                screen.orientation.unlock();
+            }
+        } catch (e) {
+            console.warn('Web exit immersive failed:', e);
+        }
+    }
 }
 
 /**

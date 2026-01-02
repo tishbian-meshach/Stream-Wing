@@ -3,6 +3,7 @@ import { KeepAwake } from '@capacitor-community/keep-awake';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useRoom } from '../hooks/useRoom';
 import { ViewerPeerManager } from '../webrtc/viewer';
+import { enterImmersiveMode, exitImmersiveMode } from '../lib/platform';
 import { ConnectionStatus } from '../components/StatusBadge';
 import { ViewerControls } from '../components/ViewerControls';
 import { ArrowLeftIcon, WifiIcon } from '../components/Icons';
@@ -129,14 +130,18 @@ export function ViewerRoom() {
         }
     };
 
-    // Fullscreen
-    const handleFullscreen = () => {
-        if (containerRef.current) {
-            if (document.fullscreenElement) {
-                document.exitFullscreen();
-            } else {
-                containerRef.current.requestFullscreen();
-            }
+    // Immersive Mode
+    const [isImmersive, setIsImmersive] = useState(false);
+
+    const handleFullscreen = async () => {
+        if (!isImmersive) {
+            await enterImmersiveMode();
+            setIsImmersive(true);
+            setShowControls(false);
+        } else {
+            await exitImmersiveMode();
+            setIsImmersive(false);
+            setShowControls(true);
         }
     };
 

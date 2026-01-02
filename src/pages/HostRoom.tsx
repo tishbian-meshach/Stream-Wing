@@ -6,7 +6,7 @@ import { HostPeerManager } from '../webrtc/host';
 import { ConnectionStatus } from '../components/StatusBadge';
 import { VideoControls, DoubleTapOverlay } from '../components/VideoControls';
 import { FilmIcon, UploadIcon, ArrowLeftIcon, ShareIcon } from '../components/Icons';
-import { shareContent, isNativePlatform } from '../lib/platform';
+import { shareContent, isNativePlatform, enterImmersiveMode, exitImmersiveMode } from '../lib/platform';
 
 export function HostRoom() {
     const { roomId } = useParams<{ roomId: string }>();
@@ -203,9 +203,18 @@ export function HostRoom() {
         }
     };
 
-    // Fullscreen
-    const handleFullscreen = () => {
-        videoRef.current?.requestFullscreen?.();
+    // Immersive Mode
+    const [isImmersive, setIsImmersive] = useState(false);
+
+    const handleFullscreen = async () => {
+        if (!isImmersive) {
+            await enterImmersiveMode();
+            setIsImmersive(true);
+            setShowControls(false); // Auto hide controls for immersion
+        } else {
+            await exitImmersiveMode();
+            setIsImmersive(false);
+        }
     };
 
     // Handle video ended - sync to viewers

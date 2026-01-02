@@ -278,7 +278,23 @@ export function DoubleTapOverlay({ onDoubleTapLeft, onDoubleTapRight, onSingleTa
     const tapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const handleTap = (e: React.MouseEvent | React.TouchEvent) => {
-        const clientX = 'touches' in e ? e.changedTouches[0].clientX : e.clientX;
+        // Prevent ghost clicks from double handling
+        // If we handle touch, we shouldn't handle the subsequent click
+        // React's SyntheticEvent system might still bubble, so we check carefully.
+
+        // If it's a touch event, it's the "real" tap on mobile.
+        // If it's a click, it might be a mouse click OR a delayed touch click.
+
+        // Simple strategy: Use onClick for everything, but on mobile use onTouchEnd to trigger FAST tap and prevent clicking?
+        // No, standard practice: handle both but debounce/lock.
+
+        // BETTER FIX: onTouchEnd calls preventDefault to stop mouse emulation (click)
+        // But need to be careful not to block other interactions if nested.
+        // Since this is an overlay, blocking is fine.
+
+        console.log("Tap event:", e.type);
+
+        const clientX = 'changedTouches' in e ? e.changedTouches[0].clientX : (e as React.MouseEvent).clientX;
         const rect = e.currentTarget.getBoundingClientRect();
         const relativeX = clientX - rect.left;
         const side = relativeX < rect.width / 2 ? 'left' : 'right';
@@ -304,8 +320,13 @@ export function DoubleTapOverlay({ onDoubleTapLeft, onDoubleTapRight, onSingleTa
             }
 
             lastTapRef.current = { time: 0, side: null };
+
+            // If touch, prevent ghost click
+            if (e.type === 'touchend' && e.cancelable) {
+                e.preventDefault();
+            }
         } else {
-            // First tap - wait to see if it's a double tap
+            // First tap
             lastTapRef.current = { time: now, side };
 
             if (tapTimeoutRef.current) {
@@ -313,7 +334,7 @@ export function DoubleTapOverlay({ onDoubleTapLeft, onDoubleTapRight, onSingleTa
             }
 
             tapTimeoutRef.current = setTimeout(() => {
-                // Single tap after timeout
+                // Signal single tap only if we haven't double tapped
                 onSingleTap?.();
                 lastTapRef.current = { time: 0, side: null };
             }, 300);
@@ -324,7 +345,12 @@ export function DoubleTapOverlay({ onDoubleTapLeft, onDoubleTapRight, onSingleTa
         <div
             className="absolute inset-0 z-10"
             onClick={handleTap}
-            onTouchEnd={handleTap}
+            onTouchEnd={(e) => {
+                // Prevent ghost click (mouse emulation) entirely
+                // We handle the tap logic right here via handleTap
+                if (e.cancelable) e.preventDefault();
+                handleTap(e);
+            }}
         >
             <SkipIndicator direction="backward" visible={showLeft} />
             <SkipIndicator direction="forward" visible={showRight} />
