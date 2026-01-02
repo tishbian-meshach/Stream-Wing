@@ -17,7 +17,7 @@ export function ViewerControls({
     onMuteToggle,
 }: ViewerControlsProps) {
     return (
-        <div className="w-full bg-gradient-to-t from-black/90 via-black/60 to-transparent px-4 py-4 sm:py-5">
+        <div className="w-full bg-gradient-to-t from-black/90 via-black/60 to-transparent px-4 pt-4 safe-area-pb">
             <div className="flex items-center justify-center gap-4">
                 {/* Mute Button */}
                 <Button

@@ -21,6 +21,7 @@ export function ViewerRoom() {
     const pendingStreamRef = useRef<MediaStream | null>(null);
     const [showControls, setShowControls] = useState(true);
     const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [isBuffering, setIsBuffering] = useState(false);
 
     // Volume controls
     const [volume, setVolume] = useState(1);
@@ -150,7 +151,6 @@ export function ViewerRoom() {
     };
 
     return (
-    return (
         <div ref={containerRef} className="fixed inset-0 bg-black text-white overflow-hidden">
             {/* Header */}
             <header className={`fixed top-0 left-0 right-0 z-30 px-3 sm:px-4 bg-gradient-to-b from-black/80 to-transparent transition-opacity duration-300 safe-area-pt ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
@@ -181,6 +181,7 @@ export function ViewerRoom() {
                 className="absolute inset-0 flex items-center justify-center bg-black"
                 onClick={handleVideoTap}
             >
+                {/* Initial Connection Loading */}
                 {status !== 'streaming' && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black/90 gap-4 px-6">
                         <div className="relative">
@@ -194,18 +195,28 @@ export function ViewerRoom() {
                     </div>
                 )}
 
+                {/* Buffering Indicator */}
+                {status === 'streaming' && isBuffering && (
+                    <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/20 backdrop-blur-[2px]">
+                        <div className="w-12 h-12 rounded-full border-4 border-white/20 border-t-white animate-spin" />
+                    </div>
+                )}
+
                 <video
                     ref={videoRef}
                     className="w-full h-full object-contain"
                     controls={false}
                     playsInline
                     autoPlay
+                    onWaiting={() => setIsBuffering(true)}
+                    onPlaying={() => setIsBuffering(false)}
+                    onCanPlay={() => setIsBuffering(false)}
                 />
             </div>
 
             {/* Viewer Controls - Overlay */}
             {status === 'streaming' && (
-                <div className={`fixed bottom-0 left-0 right-0 z-30 transition-opacity duration-300 safe-area-pb ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                <div className={`fixed bottom-0 left-0 right-0 z-30 transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                     <ViewerControls
                         onFullscreen={handleFullscreen}
                         volume={volume}
@@ -219,6 +230,5 @@ export function ViewerRoom() {
             {/* Bottom safe area spacer */}
             <div className="fixed bottom-0 left-0 right-0 h-safe-area-inset-bottom bg-black z-0" />
         </div>
-    );
     );
 }
