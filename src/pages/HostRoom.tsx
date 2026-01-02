@@ -171,6 +171,10 @@ export function HostRoom() {
     const handleLoadedMetadata = () => {
         if (videoRef.current) {
             setDuration(videoRef.current.duration);
+            // Force rendering of first frame on mobile if at start
+            if (videoRef.current.currentTime === 0) {
+                videoRef.current.currentTime = 0.001;
+            }
         }
     };
 
@@ -283,6 +287,7 @@ export function HostRoom() {
                     className="w-full h-full object-contain"
                     controls={false}
                     playsInline
+                    preload="auto"
                     onTimeUpdate={handleTimeUpdate}
                     onLoadedMetadata={handleLoadedMetadata}
                     onSeeked={() => {
