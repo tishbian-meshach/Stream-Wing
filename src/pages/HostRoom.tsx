@@ -5,7 +5,7 @@ import { useRoom } from '../hooks/useRoom';
 import { HostPeerManager } from '../webrtc/host';
 import { Button } from '../components/Button';
 import { ConnectionStatus } from '../components/StatusBadge';
-import { VideoControls } from '../components/VideoControls';
+import { VideoControls, DoubleTapOverlay } from '../components/VideoControls';
 import { FilmIcon, UploadIcon, ArrowLeftIcon, CopyIcon, ShareIcon } from '../components/Icons';
 
 export function HostRoom() {
@@ -24,6 +24,8 @@ export function HostRoom() {
     const [duration, setDuration] = useState(0);
     const [copied, setCopied] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [showControls, setShowControls] = useState(true);
+    const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     // Subscribe to room
     useEffect(() => {
@@ -155,6 +157,36 @@ export function HostRoom() {
         fileInputRef.current?.click();
     };
 
+    // Skip forward/backward
+    const SKIP_SECONDS = 10;
+
+    const handleSkipForward = () => {
+        if (!videoRef.current || !hostManager) return;
+        const newTime = Math.min(videoRef.current.currentTime + SKIP_SECONDS, duration);
+        videoRef.current.currentTime = newTime;
+        hostManager.broadcastSyncEvent({ action: 'seek', time: newTime, timestamp: Date.now() });
+    };
+
+    const handleSkipBackward = () => {
+        if (!videoRef.current || !hostManager) return;
+        const newTime = Math.max(videoRef.current.currentTime - SKIP_SECONDS, 0);
+        videoRef.current.currentTime = newTime;
+        hostManager.broadcastSyncEvent({ action: 'seek', time: newTime, timestamp: Date.now() });
+    };
+
+    // Toggle controls visibility
+    const handleVideoTap = () => {
+        setShowControls(prev => !prev);
+
+        // Auto-hide after 3 seconds
+        if (controlsTimeoutRef.current) {
+            clearTimeout(controlsTimeoutRef.current);
+        }
+        controlsTimeoutRef.current = setTimeout(() => {
+            setShowControls(false);
+        }, 3000);
+    };
+
     return (
         <div className="min-h-screen bg-black text-white flex flex-col">
             {/* Header */}
@@ -200,6 +232,15 @@ export function HostRoom() {
                     }}
                     onEnded={handleVideoEnded}
                 />
+
+                {/* Double Tap Overlay for skip */}
+                {file && (
+                    <DoubleTapOverlay
+                        onDoubleTapLeft={handleSkipBackward}
+                        onDoubleTapRight={handleSkipForward}
+                        onSingleTap={handleVideoTap}
+                    />
+                )}
 
                 {/* Hidden file input for changing video */}
                 <input
@@ -251,6 +292,8 @@ export function HostRoom() {
                         onStartStream={startStream}
                         streamActive={streamActive}
                         onChangeFile={handleChangeFile}
+                        onSkipForward={handleSkipForward}
+                        onSkipBackward={handleSkipBackward}
                     />
                 </div>
             )}
