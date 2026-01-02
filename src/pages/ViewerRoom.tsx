@@ -19,6 +19,8 @@ export function ViewerRoom() {
     const containerRef = useRef<HTMLDivElement>(null);
     const [status, setStatus] = useState<'connecting' | 'streaming' | 'offline'>('connecting');
     const pendingStreamRef = useRef<MediaStream | null>(null);
+    const [showControls, setShowControls] = useState(true);
+    const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Volume controls
     const [volume, setVolume] = useState(1);
@@ -135,24 +137,37 @@ export function ViewerRoom() {
         }
     };
 
+    const handleVideoTap = () => {
+        setShowControls(prev => !prev);
+        if (controlsTimeoutRef.current) {
+            clearTimeout(controlsTimeoutRef.current);
+        }
+        if (!showControls) {
+            controlsTimeoutRef.current = setTimeout(() => {
+                setShowControls(false);
+            }, 3000);
+        }
+    };
+
     return (
-        <div ref={containerRef} className="min-h-screen bg-black text-white flex flex-col">
+    return (
+        <div ref={containerRef} className="fixed inset-0 bg-black text-white overflow-hidden">
             {/* Header */}
-            <header className="fixed top-0 left-0 right-0 z-20 px-3 sm:px-4 bg-gradient-to-b from-black/90 to-transparent safe-area-pt">
-                <div className="flex items-center justify-between gap-3">
+            <header className={`fixed top-0 left-0 right-0 z-30 px-3 sm:px-4 bg-gradient-to-b from-black/80 to-transparent transition-opacity duration-300 safe-area-pt ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                <div className="flex items-center justify-between gap-3 min-h-[56px]">
                     <button
                         onClick={() => navigate('/')}
-                        className="p-2 -ml-2 hover:bg-neutral-800 rounded-lg transition-colors"
+                        className="p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors"
                         aria-label="Go back"
                     >
-                        <ArrowLeftIcon className="w-5 h-5" />
+                        <ArrowLeftIcon className="w-6 h-6" />
                     </button>
 
                     <div className="flex items-center gap-2">
                         <StatusBadge status={status} />
                         {roomId && (
-                            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-neutral-800 rounded-lg">
-                                <span className="font-mono text-sm text-gray-300">{roomId}</span>
+                            <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-sm rounded-full">
+                                <span className="font-mono text-xs text-gray-200">{roomId}</span>
                             </div>
                         )}
                     </div>
@@ -162,9 +177,12 @@ export function ViewerRoom() {
             </header>
 
             {/* Video Area */}
-            <main className="flex-1 flex items-center justify-center pt-14 pb-20">
+            <div
+                className="absolute inset-0 flex items-center justify-center bg-black"
+                onClick={handleVideoTap}
+            >
                 {status !== 'streaming' && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black/80 gap-4 px-6">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black/90 gap-4 px-6">
                         <div className="relative">
                             <div className="w-16 h-16 rounded-full border-4 border-neutral-700 border-t-indigo-500 animate-spin" />
                             <WifiIcon className="absolute inset-0 m-auto w-6 h-6 text-gray-400" />
@@ -183,11 +201,11 @@ export function ViewerRoom() {
                     playsInline
                     autoPlay
                 />
-            </main>
+            </div>
 
-            {/* Viewer Controls */}
+            {/* Viewer Controls - Overlay */}
             {status === 'streaming' && (
-                <div className="fixed bottom-0 left-0 right-0 z-20 safe-area-pb">
+                <div className={`fixed bottom-0 left-0 right-0 z-30 transition-opacity duration-300 safe-area-pb ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                     <ViewerControls
                         onFullscreen={handleFullscreen}
                         volume={volume}
@@ -198,7 +216,9 @@ export function ViewerRoom() {
                 </div>
             )}
 
-            <div className="h-safe-area-inset-bottom bg-black" />
+            {/* Bottom safe area spacer */}
+            <div className="fixed bottom-0 left-0 right-0 h-safe-area-inset-bottom bg-black z-0" />
         </div>
+    );
     );
 }

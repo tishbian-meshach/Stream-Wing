@@ -68,10 +68,18 @@ export function HostRoom() {
 
             // If we were already streaming, restart the stream with the new file
             // give it a moment to load
+            // If we were already streaming, restart the stream with the new file
+            // give it a moment to load
             if (streamActive) {
-                setTimeout(() => {
+                // Stop current
+                setStreamActive(false);
+                setIsPlaying(false);
+
+                // Wait for video to be ready with new source
+                videoRef.current.oncanplay = () => {
+                    videoRef.current!.oncanplay = null; // cleanup
                     startStream();
-                }, 500);
+                };
             }
         }
     };
@@ -212,23 +220,23 @@ export function HostRoom() {
     };
 
     return (
-        <div className="min-h-screen bg-black text-white flex flex-col">
+        <div className="fixed inset-0 bg-black text-white overflow-hidden">
             {/* Header */}
-            <header className="fixed top-0 left-0 right-0 z-20 px-3 sm:px-4 bg-gradient-to-b from-black/90 to-transparent safe-area-pt">
-                <div className="flex items-center justify-between gap-3">
+            <header className={`fixed top-0 left-0 right-0 z-30 px-3 sm:px-4 bg-gradient-to-b from-black/80 to-transparent transition-opacity duration-300 safe-area-pt ${(file && !_showControls) ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                <div className="flex items-center justify-between gap-3 min-h-[56px]">
                     <button
                         onClick={() => navigate('/')}
-                        className="p-2 -ml-2 hover:bg-neutral-800 rounded-lg transition-colors"
+                        className="p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors"
                         aria-label="Go back"
                     >
-                        <ArrowLeftIcon className="w-5 h-5" />
+                        <ArrowLeftIcon className="w-6 h-6" />
                     </button>
 
                     <ConnectionStatus viewerCount={viewers.length} roomId={roomId} isHost />
 
                     <button
                         onClick={shareRoomId}
-                        className="p-2 hover:bg-neutral-800 rounded-lg transition-colors"
+                        className="p-2 hover:bg-white/10 rounded-full transition-colors"
                         aria-label="Share room"
                     >
                         {copied ? (
@@ -241,10 +249,10 @@ export function HostRoom() {
             </header>
 
             {/* Video Area */}
-            <main className="flex-1 flex items-center justify-center pt-16 pb-32">
+            <main className="absolute inset-0 flex items-center justify-center bg-black">
                 <video
                     ref={videoRef}
-                    className="w-full h-full max-h-[calc(100vh-12rem)] object-contain"
+                    className="w-full h-full object-contain"
                     controls={false}
                     playsInline
                     onTimeUpdate={handleTimeUpdate}
@@ -277,34 +285,30 @@ export function HostRoom() {
 
                 {/* Empty State */}
                 {!file && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-950/95 gap-6 px-6">
-                        <div className="w-20 h-20 rounded-full bg-neutral-800 flex items-center justify-center">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-950 px-6 z-20">
+                        <div className="w-20 h-20 rounded-full bg-neutral-800 flex items-center justify-center mb-6">
                             <FilmIcon className="w-10 h-10 text-gray-500" />
                         </div>
-                        <div className="text-center space-y-2">
+                        <div className="text-center space-y-2 mb-8">
                             <h2 className="text-xl font-semibold">Select a Video</h2>
-                            <p className="text-gray-400 text-sm max-w-xs">
+                            <p className="text-gray-400 text-sm max-w-xs mx-auto">
                                 Choose a video file from your device to start streaming
                             </p>
                         </div>
-                        <label className="cursor-pointer inline-flex items-center justify-center gap-2 px-6 py-3.5 text-lg font-medium bg-indigo-600 text-white hover:bg-indigo-500 rounded-xl transition-all duration-200 active:scale-95">
+                        <button
+                            onClick={() => fileInputRef.current?.click()}
+                            className="inline-flex items-center justify-center gap-2 px-6 py-3.5 text-lg font-medium bg-indigo-600 text-white hover:bg-indigo-500 rounded-xl transition-all duration-200 active:scale-95 shadow-lg shadow-indigo-500/20"
+                        >
                             <UploadIcon className="w-5 h-5" />
                             Choose File
-                            <input
-                                type="file"
-                                accept="video/*"
-                                className="hidden"
-                                onChange={handleFileChange}
-                            />
-                        </label>
-
+                        </button>
                     </div>
                 )}
             </main>
 
-            {/* Controls */}
+            {/* Controls - Overlay */}
             {file && (
-                <div className="fixed bottom-0 left-0 right-0 z-20 safe-area-pb">
+                <div className={`fixed bottom-0 left-0 right-0 z-30 transition-opacity duration-300 safe-area-pb ${!_showControls ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                     <VideoControls
                         isPlaying={isPlaying}
                         onPlayPause={togglePlay}
@@ -321,6 +325,9 @@ export function HostRoom() {
                     />
                 </div>
             )}
+
+            {/* Bottom safe area spacer */}
+            <div className="fixed bottom-0 left-0 right-0 h-safe-area-inset-bottom bg-black z-0" />
         </div>
     );
 }
