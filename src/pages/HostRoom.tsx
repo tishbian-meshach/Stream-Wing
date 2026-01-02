@@ -7,7 +7,6 @@ import { ConnectionStatus } from '../components/StatusBadge';
 import { VideoControls, DoubleTapOverlay } from '../components/VideoControls';
 import { FilmIcon, UploadIcon, ArrowLeftIcon, ShareIcon } from '../components/Icons';
 import { shareContent, isNativePlatform, enterImmersiveMode, exitImmersiveMode } from '../lib/platform';
-import { srtToVtt, addSubtitleTrack, toggleSubtitleTrack } from '../lib/subtitleUtils';
 
 export function HostRoom() {
     const { roomId } = useParams<{ roomId: string }>();
@@ -177,100 +176,134 @@ export function HostRoom() {
             if (videoRef.current.currentTime === 0) {
                 videoRef.current.currentTime = 0.001;
             }
-            // Check for audio tracks
+
+            // Detect embedded tracks automatically
             updateAudioTracks();
+            updateTextTracks();
+            detectCodecIssues();
         }
     };
 
-    // Subtitles
-    const subtitleInputRef = useRef<HTMLInputElement>(null);
+    // Subtitles - Auto-detect from video textTracks
     const [hasSubtitles, setHasSubtitles] = useState(false);
     const [isSubtitleEnabled, setIsSubtitleEnabled] = useState(false);
-
-    const handleUploadSubtitle = () => {
-        subtitleInputRef.current?.click();
-    };
 
     const handleToggleSubtitle = () => {
         if (!videoRef.current || !hasSubtitles) return;
         const newState = !isSubtitleEnabled;
         setIsSubtitleEnabled(newState);
-        toggleSubtitleTrack(videoRef.current, newState);
+
+        // Toggle all text tracks
+        const tracks = videoRef.current.textTracks;
+        for (let i = 0; i < tracks.length; i++) {
+            tracks[i].mode = newState ? 'showing' : 'hidden';
+        }
     };
 
-    // Audio Tracks
+    // Audio Tracks - Auto-detect from video
     const [audioTracks, setAudioTracks] = useState<any[]>([]);
+    const [currentAudioTrack, setCurrentAudioTrack] = useState(0);
 
     const updateAudioTracks = () => {
         if (!videoRef.current) return;
-        // @ts-ignore
+        // @ts-ignore - audioTracks API has limited browser support
         const tracks = videoRef.current.audioTracks;
-        if (tracks) {
+        if (tracks && tracks.length > 0) {
             const list = [];
             for (let i = 0; i < tracks.length; i++) {
                 list.push({
-                    label: tracks[i].label || `Track ${i + 1}`,
-                    language: tracks[i].language,
+                    id: i,
+                    label: tracks[i].label || `Audio ${i + 1}`,
+                    language: tracks[i].language || 'unknown',
                     enabled: tracks[i].enabled
                 });
+                if (tracks[i].enabled) {
+                    setCurrentAudioTrack(i);
+                }
             }
+            console.log('Detected audio tracks:', list);
             setAudioTracks(list);
+        } else {
+            console.warn('No audioTracks API support or no multiple audio tracks detected');
         }
+    };
+
+    const updateTextTracks = () => {
+        if (!videoRef.current) return;
+        const tracks = videoRef.current.textTracks;
+        if (tracks && tracks.length > 0) {
+            console.log('Detected embedded subtitles:', tracks.length);
+            setHasSubtitles(true);
+            // Auto-enable first subtitle track
+            if (tracks[0]) {
+                tracks[0].mode = 'showing';
+                setIsSubtitleEnabled(true);
+            }
+        }
+    };
+
+    const detectCodecIssues = () => {
+        if (!videoRef.current) return;
+
+        const video = videoRef.current;
+
+        setTimeout(() => {
+            // @ts-ignore - browser-specific audio properties
+            const audioTracks = video.audioTracks;
+            const hasAudioTrack = audioTracks && audioTracks.length > 0;
+
+            // Check if video loaded but has no playable audio
+            const videoHasLoaded = video.readyState >= 2; // HAVE_CURRENT_DATA
+
+            if (videoHasLoaded && hasAudioTrack) {
+                // Video loaded with audio tracks, but check if audio is actually playing
+                // @ts-ignore - browser-specific audio detection
+                const hasAudioOutput = video.mozHasAudio || Boolean(video.webkitAudioDecodedByteCount);
+
+                if (!hasAudioOutput) {
+                    console.error('Audio codec incompatibility detected', {
+                        fileType: file?.type,
+                        fileName: file?.name
+                    });
+
+                    // Show detailed error message
+                    const fileExt = file?.name.split('.').pop()?.toUpperCase();
+                    alert(
+                        `⚠️ AUDIO CODEC NOT SUPPORTED\n\n` +
+                        `Your ${fileExt} file contains audio that cannot be played in the browser.\n\n` +
+                        `Common causes:\n` +
+                        `• AC3/DTS audio (common in MKV files)\n` +
+                        `• FLAC or other lossless codecs\n\n` +
+                        `SOLUTION: Re-encode with compatible audio:\n` +
+                        `• Use HandBrake or FFmpeg\n` +
+                        `• Convert audio to AAC or MP3\n` +
+                        `• Keep video as H.264\n` +
+                        `• Save as MP4 container\n\n` +
+                        `Quick command:\n` +
+                        `ffmpeg -i input.mkv -c:v copy -c:a aac output.mp4`
+                    );
+                }
+            }
+        }, 1500); // Wait longer to ensure audio has had time to initialize
     };
 
     const handleAudioTrackChange = () => {
         if (!videoRef.current) return;
         // @ts-ignore
         const tracks = videoRef.current.audioTracks;
-        if (!tracks) return;
+        if (!tracks || tracks.length <= 1) return;
 
-        // Find current enabled index
-        let currentIndex = -1;
-        for (let i = 0; i < tracks.length; i++) {
-            if (tracks[i].enabled) {
-                currentIndex = i;
-                break;
-            }
-        }
+        // Cycle to next track
+        const nextIndex = (currentAudioTrack + 1) % tracks.length;
 
-        // Cycle to next
-        const nextIndex = (currentIndex + 1) % tracks.length;
-
-        // Enabling one usually disables others, but let's be explicit if needed
+        // Disable all, enable selected
         for (let i = 0; i < tracks.length; i++) {
             tracks[i].enabled = i === nextIndex;
         }
 
-        updateAudioTracks(); // Refresh state
+        setCurrentAudioTrack(nextIndex);
+        updateAudioTracks();
     };
-
-    const handleSubtitleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file || !videoRef.current) return;
-
-        const text = await file.text();
-        let vttContent = text;
-
-        if (file.name.endsWith('.srt')) {
-            vttContent = srtToVtt(text);
-        }
-
-        // Add locally
-        addSubtitleTrack(videoRef.current, vttContent, 'English');
-        setHasSubtitles(true);
-        setIsSubtitleEnabled(true); // Auto enable on load
-
-        // Broadcast to viewers
-        if (hostManager) {
-            hostManager.broadcastSyncEvent({
-                action: 'subtitle',
-                content: vttContent,
-                label: 'English',
-                timestamp: Date.now()
-            });
-        }
-    };
-
     // Share/Copy room ID
     const shareRoomId = async () => {
         if (!roomId) return;
@@ -418,15 +451,6 @@ export function HostRoom() {
                     onChange={handleFileChange}
                 />
 
-                {/* Hidden file input for subtitles */}
-                <input
-                    ref={subtitleInputRef}
-                    type="file"
-                    accept=".srt,.vtt"
-                    className="hidden"
-                    onChange={handleSubtitleChange}
-                />
-
                 {/* Empty State */}
                 {!file && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-950 px-6 z-20">
@@ -466,7 +490,6 @@ export function HostRoom() {
                         onChangeFile={handleChangeFile}
                         onSkipForward={handleSkipForward}
                         onSkipBackward={handleSkipBackward}
-                        onUploadSubtitle={handleUploadSubtitle}
                         onToggleSubtitle={handleToggleSubtitle}
                         hasSubtitles={hasSubtitles}
                         isSubtitleEnabled={isSubtitleEnabled}

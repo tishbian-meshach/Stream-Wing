@@ -18,7 +18,6 @@ interface VideoControlsProps {
     onSkipForward?: () => void;
     onSkipBackward?: () => void;
     // Media Enhancements
-    onUploadSubtitle?: () => void;
     onToggleSubtitle?: () => void;
     hasSubtitles?: boolean;
     isSubtitleEnabled?: boolean;
@@ -70,7 +69,6 @@ export function VideoControls({
     onChangeFile,
     onSkipForward,
     onSkipBackward,
-    onUploadSubtitle,
     onToggleSubtitle,
     hasSubtitles,
     isSubtitleEnabled,
@@ -275,11 +273,11 @@ export function VideoControls({
             </div>
 
             {/* Secondary Controls Row (Subtitles/Audio) */}
-            {(onUploadSubtitle || hasSubtitles || (audioTracks && audioTracks.length > 1)) && (
+            {(hasSubtitles || (audioTracks && audioTracks.length > 1)) && (
                 <div className="flex items-center justify-center gap-4 mt-2">
-                    {(onUploadSubtitle || hasSubtitles) && (
+                    {hasSubtitles && onToggleSubtitle && (
                         <Button
-                            onClick={onUploadSubtitle && !hasSubtitles ? onUploadSubtitle : onToggleSubtitle}
+                            onClick={onToggleSubtitle}
                             variant="ghost"
                             size="sm"
                             className={cn("text-xs transition-colors",
@@ -287,7 +285,7 @@ export function VideoControls({
                             )}
                         >
                             <MessageSquareIcon className="w-4 h-4 mr-1.5" />
-                            {onUploadSubtitle && !hasSubtitles ? 'Add Subs' : (isSubtitleEnabled ? 'CC On' : 'CC Off')}
+                            {isSubtitleEnabled ? 'CC On' : 'CC Off'}
                         </Button>
                     )}
 
