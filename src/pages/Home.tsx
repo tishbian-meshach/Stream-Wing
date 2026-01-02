@@ -27,8 +27,19 @@ export function Home() {
 
     const handleJoin = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!joinId.trim()) return;
-        navigate(`/viewer/${joinId}`, { state: { peerId } });
+        const input = joinId.trim();
+        if (!input) return;
+
+        // Smart parse: Handle full URLs if pasted
+        let targetRoomId = input;
+        if (input.includes('/viewer/')) {
+            const parts = input.split('/viewer/');
+            if (parts[1]) {
+                targetRoomId = parts[1].split('/')[0].split('?')[0]; // Handle trailing slash or query params
+            }
+        }
+
+        navigate(`/viewer/${targetRoomId}`, { state: { peerId } });
     };
 
     return (

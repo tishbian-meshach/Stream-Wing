@@ -193,7 +193,7 @@ export function HostRoom() {
             }
         } else {
             // Web fallback - copy to clipboard
-            await navigator.clipboard.writeText(roomId);
+            await navigator.clipboard.writeText(shareUrl);
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
         }
