@@ -53,7 +53,15 @@ export class HostPeerManager {
         this.dataChannels.set(viewerId, dc);
         dc.onopen = () => console.log(`Data channel open for viewer ${viewerId}`);
         dc.onmessage = (e) => {
-            if (this.onSyncEvent) this.onSyncEvent(JSON.parse(e.data));
+            const data = JSON.parse(e.data);
+
+            // Handle quality change requests from viewer
+            if (data.action === 'quality-request') {
+                console.log(`Viewer ${viewerId} requested quality: ${data.quality}`);
+                this.setQualityForViewer(viewerId, data.quality);
+            } else if (this.onSyncEvent) {
+                this.onSyncEvent(data);
+            }
         };
     }
 
@@ -103,6 +111,69 @@ export class HostPeerManager {
             pc.close();
             this.peers.delete(viewerId);
             this.dataChannels.delete(viewerId);
+        }
+    }
+
+    // Bitrate presets for quality levels (maxBitrate only - minBitrate not supported)
+    private qualityBitrates = {
+        'high': 10000000,   // 10 Mbps - Very high to allow original quality
+        'sd': 1500000,      // 1.5 Mbps
+        'low': 500000       // 500 Kbps
+    };
+
+    // Set video quality for a specific viewer
+    async setQualityForViewer(viewerId: string, quality: 'high' | 'sd' | 'low') {
+        const pc = this.peers.get(viewerId);
+        if (!pc) {
+            console.warn(`No peer connection for viewer ${viewerId}`);
+            return;
+        }
+
+        const senders = pc.getSenders();
+        const videoSender = senders.find(sender => sender.track?.kind === 'video');
+
+        if (!videoSender) {
+            console.warn(`No video sender for viewer ${viewerId}`);
+            return;
+        }
+
+        try {
+            const params = videoSender.getParameters();
+            if (!params.encodings || params.encodings.length === 0) {
+                params.encodings = [{}];
+            }
+
+            const maxBitrate = this.qualityBitrates[quality];
+            params.encodings[0].maxBitrate = maxBitrate;
+
+            // CRITICAL: Configure quality settings properly
+            if (quality === 'high') {
+                // Remove any constraints for highest quality
+                delete params.encodings[0].scaleResolutionDownBy;
+                params.encodings[0].maxFramerate = undefined; // No limit
+                // @ts-ignore
+                params.degradationPreference = 'maintain-resolution'; // Prioritize quality over framerate
+            } else if (quality === 'sd') {
+                params.encodings[0].scaleResolutionDownBy = 1.5;
+                params.encodings[0].maxFramerate = 30;
+                // @ts-ignore
+                params.degradationPreference = 'balanced';
+            } else { // low
+                params.encodings[0].scaleResolutionDownBy = 2;
+                params.encodings[0].maxFramerate = 24;
+                // @ts-ignore
+                params.degradationPreference = 'maintain-framerate';
+            }
+
+            await videoSender.setParameters(params);
+            console.log(`✓ Quality set for viewer ${viewerId}:`, {
+                quality,
+                maxBitrate: (maxBitrate / 1000000).toFixed(1) + ' Mbps',
+                scale: params.encodings[0].scaleResolutionDownBy || 'none',
+                maxFps: params.encodings[0].maxFramerate || 'unlimited'
+            });
+        } catch (e) {
+            console.error(`Failed to set quality for viewer ${viewerId}:`, e);
         }
     }
 

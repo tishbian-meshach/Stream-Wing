@@ -40,6 +40,22 @@ export function ViewerRoom() {
         toggleSubtitleTrack(videoRef.current, newState);
     };
 
+    // Quality Control
+    const [currentQuality, setCurrentQuality] = useState<'high' | 'sd' | 'low'>(() => {
+        // Load from localStorage or default to SD
+        return (localStorage.getItem('streamwing-video-quality') as 'high' | 'sd' | 'low') || 'sd';
+    });
+
+    const handleQualityChange = (quality: 'high' | 'sd' | 'low') => {
+        setCurrentQuality(quality);
+        localStorage.setItem('streamwing-video-quality', quality);
+
+        // Send quality request to host via manager
+        if (_viewerManager) {
+            _viewerManager.requestQualityChange(quality);
+        }
+    };
+
     // Auto-join
     useEffect(() => {
         if (roomId) {
@@ -247,6 +263,8 @@ export function ViewerRoom() {
                         hasSubtitles={hasSubtitles}
                         isSubtitleEnabled={isSubtitleEnabled}
                         onToggleSubtitle={handleToggleSubtitle}
+                        currentQuality={currentQuality}
+                        onQualityChange={handleQualityChange}
                     />
                 </div>
             )}

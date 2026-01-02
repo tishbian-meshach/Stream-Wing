@@ -1,3 +1,4 @@
+import React from 'react';
 import { cn } from '../lib/utils';
 import { Button } from './Button';
 import { FullscreenIcon, VolumeIcon, MessageSquareIcon } from './Icons';
@@ -11,6 +12,9 @@ interface ViewerControlsProps {
     hasSubtitles?: boolean;
     isSubtitleEnabled?: boolean;
     onToggleSubtitle?: () => void;
+    // Quality Control
+    currentQuality?: 'high' | 'sd' | 'low';
+    onQualityChange?: (quality: 'high' | 'sd' | 'low') => void;
 }
 
 export function ViewerControls({
@@ -22,6 +26,8 @@ export function ViewerControls({
     hasSubtitles,
     isSubtitleEnabled,
     onToggleSubtitle,
+    currentQuality,
+    onQualityChange,
 }: ViewerControlsProps) {
     return (
         <div className="w-full bg-gradient-to-t from-black/90 via-black/60 to-transparent px-4 pt-4 safe-area-pb">
@@ -84,6 +90,14 @@ export function ViewerControls({
                     />
                 </div>
 
+                {/* Custom Quality Selector */}
+                {onQualityChange && (
+                    <CustomQualitySelector
+                        currentQuality={currentQuality || 'sd'}
+                        onQualityChange={onQualityChange}
+                    />
+                )}
+
                 {/* Fullscreen Button */}
                 <Button
                     onClick={onFullscreen}
@@ -94,6 +108,93 @@ export function ViewerControls({
                     <FullscreenIcon className="w-5 h-5" />
                 </Button>
             </div>
+        </div>
+    );
+}
+
+// Custom Quality Selector Component
+function CustomQualitySelector({
+    currentQuality,
+    onQualityChange
+}: {
+    currentQuality: 'high' | 'sd' | 'low';
+    onQualityChange: (quality: 'high' | 'sd' | 'low') => void;
+}) {
+    const [isOpen, setIsOpen] = React.useState(false);
+    const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+    const qualities = [
+        { value: 'high' as const, label: 'High Quality', icon: '' },
+        { value: 'sd' as const, label: 'SD Quality', icon: '' },
+        { value: 'low' as const, label: 'Low Quality', icon: '' }
+    ];
+
+    const currentLabel = qualities.find(q => q.value === currentQuality)?.label || 'SD Quality';
+
+    // Close on outside click
+    React.useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+                setIsOpen(false);
+            }
+        };
+
+        if (isOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+            return () => document.removeEventListener('mousedown', handleClickOutside);
+        }
+    }, [isOpen]);
+
+    return (
+        <div ref={dropdownRef} className="relative">
+            <Button
+                onClick={() => setIsOpen(!isOpen)}
+                variant="ghost"
+                size="sm"
+                className={cn(
+                    "text-xs transition-all",
+                    isOpen ? "text-white bg-white/10" : "text-white/70 hover:text-white"
+                )}
+            >
+                <span className="hidden sm:inline">{currentLabel}</span>
+                <span className="sm:hidden">Quality</span>
+                <svg
+                    className={cn("w-3 h-3 ml-1 transition-transform", isOpen && "rotate-180")}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+            </Button>
+
+            {isOpen && (
+                <div className="absolute bottom-full mb-2 right-0 bg-neutral-900 border border-white/10 rounded-lg shadow-xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
+                    {qualities.map((quality) => (
+                        <button
+                            key={quality.value}
+                            onClick={() => {
+                                onQualityChange(quality.value);
+                                setIsOpen(false);
+                            }}
+                            className={cn(
+                                "w-full px-4 py-2.5 text-left text-sm flex items-center gap-2 transition-colors whitespace-nowrap",
+                                currentQuality === quality.value
+                                    ? "bg-indigo-600 text-white"
+                                    : "text-white/80 hover:bg-white/10 hover:text-white"
+                            )}
+                        >
+                            <span className="text-base">{quality.icon}</span>
+                            <span>{quality.label}</span>
+                            {currentQuality === quality.value && (
+                                <svg className="w-4 h-4 ml-auto" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                            )}
+                        </button>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

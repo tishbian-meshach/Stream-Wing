@@ -43,11 +43,28 @@ export class ViewerPeerManager {
     private setupDataChannel() {
         this.pc.ondatachannel = (event) => {
             const dc = event.channel;
+            this.dataChannel = dc; // Store reference for quality requests
             dc.onmessage = (e) => {
                 const data = JSON.parse(e.data);
                 this.onSyncEvent(data);
             };
         };
+    }
+
+    private dataChannel: RTCDataChannel | null = null;
+
+    // Request quality change from host
+    requestQualityChange(quality: 'high' | 'sd' | 'low') {
+        if (this.dataChannel && this.dataChannel.readyState === 'open') {
+            this.dataChannel.send(JSON.stringify({
+                action: 'quality-request',
+                quality,
+                timestamp: Date.now()
+            }));
+            console.log('Requested quality change:', quality);
+        } else {
+            console.warn('DataChannel not open, cannot request quality change');
+        }
     }
 
     private setupIce() {
