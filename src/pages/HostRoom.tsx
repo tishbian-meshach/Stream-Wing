@@ -100,6 +100,8 @@ export function HostRoom() {
                 setStreamActive(true);
                 videoRef.current.play();
                 setIsPlaying(true);
+                // Ensure viewers start playing immediately
+                hostManager.broadcastSyncEvent({ action: 'play', time: 0, timestamp: Date.now() });
             }
         } catch (e) {
             console.error("Failed to start stream:", e);
