@@ -5,9 +5,10 @@ export class ViewerPeerManager {
     public pc: RTCPeerConnection;
     private signaling: SignalingService;
     private roomId: string;
-    private hostId: string | null = null; // We discover host from Offer
+    private hostId: string | null = null;
     private onTrack: (stream: MediaStream) => void;
     private onSyncEvent: (event: any) => void;
+    private hasReceivedTrack = false;
 
     constructor(
         signaling: SignalingService,
@@ -28,9 +29,13 @@ export class ViewerPeerManager {
 
     private setupMedia() {
         this.pc.ontrack = (event) => {
-            console.log("Received track", event.streams[0]);
+            console.log("Received track", event.streams[0], event.track.kind);
             if (event.streams && event.streams[0]) {
-                this.onTrack(event.streams[0]);
+                // Only call onTrack once for first stream
+                if (!this.hasReceivedTrack) {
+                    this.hasReceivedTrack = true;
+                    this.onTrack(event.streams[0]);
+                }
             }
         };
     }
@@ -54,22 +59,33 @@ export class ViewerPeerManager {
     }
 
     async handleSignal(data: any, fromPeerId: string) {
-        if (data.type === 'offer') {
-            this.hostId = fromPeerId; // Found host!
+        console.log("Viewer handleSignal:", data.type, "from:", fromPeerId, "state:", this.pc.signalingState);
 
-            if (this.pc.signalingState === 'stable') {
-                await this.pc.setRemoteDescription(data.payload);
-                const answer = await this.pc.createAnswer();
-                await this.pc.setLocalDescription(answer);
-                await this.signaling.sendSignal(this.hostId, 'answer', answer);
+        if (data.type === 'offer') {
+            this.hostId = fromPeerId;
+
+            // Handle renegotiation - rollback if needed
+            if (this.pc.signalingState !== 'stable') {
+                console.log("Rolling back for renegotiation");
+                await this.pc.setLocalDescription({ type: 'rollback' });
             }
+
+            await this.pc.setRemoteDescription(data.payload);
+            const answer = await this.pc.createAnswer();
+            await this.pc.setLocalDescription(answer);
+            await this.signaling.sendSignal(this.hostId, 'answer', answer);
+
         } else if (data.type === 'candidate' && data.payload) {
-            await this.pc.addIceCandidate(data.payload);
+            try {
+                await this.pc.addIceCandidate(data.payload);
+            } catch (e) {
+                console.warn("Failed to add ICE candidate:", e);
+            }
         }
     }
 
     connect(myId: string) {
-        // nothing specific needed, waiting for offer
+        console.log("Viewer waiting for offer...");
     }
 
     cleanup() {

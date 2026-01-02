@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { KeepAwake } from '@capacitor-community/keep-awake';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useRoom } from '../hooks/useRoom';
 import { ViewerPeerManager } from '../webrtc/viewer';
-import { ConnectionStatus, StatusBadge } from '../components/StatusBadge';
+import { StatusBadge } from '../components/StatusBadge';
 import { ArrowLeftIcon, WifiIcon } from '../components/Icons';
 
 export function ViewerRoom() {
@@ -16,6 +16,7 @@ export function ViewerRoom() {
     const [viewerManager, setViewerManager] = useState<ViewerPeerManager | null>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const [status, setStatus] = useState<'connecting' | 'streaming' | 'offline'>('connecting');
+    const pendingStreamRef = useRef<MediaStream | null>(null);
 
     // Auto-join
     useEffect(() => {
@@ -23,6 +24,31 @@ export function ViewerRoom() {
             joinRoom(roomId);
         }
     }, [roomId]);
+
+    // Apply stream to video when available
+    const applyStream = useCallback((stream: MediaStream) => {
+        console.log("Applying stream to video element");
+        if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            videoRef.current.play().catch(console.error);
+            setStatus('streaming');
+            pendingStreamRef.current = null;
+        } else {
+            console.log("Video ref not ready, storing stream");
+            pendingStreamRef.current = stream;
+        }
+    }, []);
+
+    // Check for pending stream when video ref is ready
+    useEffect(() => {
+        if (videoRef.current && pendingStreamRef.current) {
+            console.log("Applying pending stream");
+            videoRef.current.srcObject = pendingStreamRef.current;
+            videoRef.current.play().catch(console.error);
+            setStatus('streaming');
+            pendingStreamRef.current = null;
+        }
+    });
 
     // Init Manager
     useEffect(() => {
@@ -37,11 +63,8 @@ export function ViewerRoom() {
             signaling,
             roomId,
             (stream) => {
-                if (videoRef.current) {
-                    videoRef.current.srcObject = stream;
-                    videoRef.current.play().catch(console.error);
-                    setStatus('streaming');
-                }
+                console.log("ViewerRoom received stream");
+                applyStream(stream);
             },
             (event) => {
                 console.log("Sync Event", event);
@@ -75,7 +98,7 @@ export function ViewerRoom() {
             KeepAwake.allowSleep().catch(() => { });
             if (onSignalRef.current) onSignalRef.current = null;
         };
-    }, [roomId, signaling, peerId]);
+    }, [roomId, signaling, peerId, applyStream]);
 
     return (
         <div className="min-h-screen bg-black text-white flex flex-col">
@@ -99,7 +122,7 @@ export function ViewerRoom() {
                         )}
                     </div>
 
-                    <div className="w-10" /> {/* Spacer for alignment */}
+                    <div className="w-10" />
                 </div>
             </header>
 
@@ -123,10 +146,11 @@ export function ViewerRoom() {
                     className="w-full h-full object-contain"
                     controls={false}
                     playsInline
+                    autoPlay
+                    muted={false}
                 />
             </main>
 
-            {/* Bottom Safe Area */}
             <div className="h-safe-area-inset-bottom bg-black" />
         </div>
     );
