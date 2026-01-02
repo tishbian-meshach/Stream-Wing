@@ -4,6 +4,7 @@ import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useRoom } from '../hooks/useRoom';
 import { ViewerPeerManager } from '../webrtc/viewer';
 import { StatusBadge } from '../components/StatusBadge';
+import { ViewerControls } from '../components/ViewerControls';
 import { ArrowLeftIcon, WifiIcon } from '../components/Icons';
 
 export function ViewerRoom() {
@@ -15,8 +16,13 @@ export function ViewerRoom() {
     const { joinRoom, signaling, onSignalRef } = useRoom(peerId);
     const [viewerManager, setViewerManager] = useState<ViewerPeerManager | null>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
     const [status, setStatus] = useState<'connecting' | 'streaming' | 'offline'>('connecting');
     const pendingStreamRef = useRef<MediaStream | null>(null);
+
+    // Volume controls
+    const [volume, setVolume] = useState(1);
+    const [isMuted, setIsMuted] = useState(false);
 
     // Auto-join
     useEffect(() => {
@@ -100,8 +106,37 @@ export function ViewerRoom() {
         };
     }, [roomId, signaling, peerId, applyStream]);
 
+    // Volume control
+    const handleVolumeChange = (newVolume: number) => {
+        setVolume(newVolume);
+        if (videoRef.current) {
+            videoRef.current.volume = newVolume;
+        }
+        if (newVolume > 0 && isMuted) {
+            setIsMuted(false);
+        }
+    };
+
+    const handleMuteToggle = () => {
+        setIsMuted(!isMuted);
+        if (videoRef.current) {
+            videoRef.current.muted = !isMuted;
+        }
+    };
+
+    // Fullscreen
+    const handleFullscreen = () => {
+        if (containerRef.current) {
+            if (document.fullscreenElement) {
+                document.exitFullscreen();
+            } else {
+                containerRef.current.requestFullscreen();
+            }
+        }
+    };
+
     return (
-        <div className="min-h-screen bg-black text-white flex flex-col">
+        <div ref={containerRef} className="min-h-screen bg-black text-white flex flex-col">
             {/* Header */}
             <header className="fixed top-0 left-0 right-0 z-20 px-3 py-3 sm:px-4 sm:py-4 bg-gradient-to-b from-black/90 to-transparent">
                 <div className="flex items-center justify-between gap-3">
@@ -127,7 +162,7 @@ export function ViewerRoom() {
             </header>
 
             {/* Video Area */}
-            <main className="flex-1 flex items-center justify-center">
+            <main className="flex-1 flex items-center justify-center pt-14 pb-20">
                 {status !== 'streaming' && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black/80 gap-4 px-6">
                         <div className="relative">
@@ -147,9 +182,21 @@ export function ViewerRoom() {
                     controls={false}
                     playsInline
                     autoPlay
-                    muted={false}
                 />
             </main>
+
+            {/* Viewer Controls */}
+            {status === 'streaming' && (
+                <div className="fixed bottom-0 left-0 right-0 z-20 safe-area-pb">
+                    <ViewerControls
+                        onFullscreen={handleFullscreen}
+                        volume={volume}
+                        onVolumeChange={handleVolumeChange}
+                        isMuted={isMuted}
+                        onMuteToggle={handleMuteToggle}
+                    />
+                </div>
+            )}
 
             <div className="h-safe-area-inset-bottom bg-black" />
         </div>
