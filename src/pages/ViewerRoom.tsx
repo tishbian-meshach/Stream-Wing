@@ -27,7 +27,7 @@ export function ViewerRoom() {
 
     // Volume controls
     const [volume, setVolume] = useState(1);
-    const [isMuted, setIsMuted] = useState(false);
+    const [isMuted, setIsMuted] = useState(true); // Default to muted for autoplay
     const [ping, setPing] = useState(0);
 
     // Auto-join
@@ -213,6 +213,7 @@ export function ViewerRoom() {
                     controls={false}
                     playsInline
                     autoPlay
+                    muted={isMuted} // Critical for autoplay on direct load
                     onWaiting={() => setIsBuffering(true)}
                     onPlaying={() => setIsBuffering(false)}
                     onCanPlay={() => setIsBuffering(false)}
