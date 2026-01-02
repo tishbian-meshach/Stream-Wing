@@ -56,6 +56,7 @@ export function HostRoom() {
         return () => {
             manager.cleanup();
             KeepAwake.allowSleep().catch(() => { });
+            exitImmersiveMode(); // Reset orientation
             if (onSignalRef.current) onSignalRef.current = null;
         };
     }, [roomId, signaling]);

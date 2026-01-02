@@ -7,6 +7,7 @@ import { enterImmersiveMode, exitImmersiveMode } from '../lib/platform';
 import { ConnectionStatus } from '../components/StatusBadge';
 import { ViewerControls } from '../components/ViewerControls';
 import { ArrowLeftIcon, WifiIcon } from '../components/Icons';
+import { OpenAppBanner } from '../components/OpenAppBanner';
 
 export function ViewerRoom() {
     const { roomId } = useParams<{ roomId: string }>();
@@ -108,6 +109,7 @@ export function ViewerRoom() {
         return () => {
             manager.cleanup();
             KeepAwake.allowSleep().catch(() => { });
+            exitImmersiveMode(); // Reset orientation
             if (onSignalRef.current) onSignalRef.current = null;
         };
     }, [roomId, signaling, peerId, applyStream]);
@@ -159,6 +161,7 @@ export function ViewerRoom() {
 
     return (
         <div ref={containerRef} className="fixed inset-0 bg-black text-white overflow-hidden">
+            <OpenAppBanner />
             {/* Header */}
             <header className={`fixed top-0 left-0 right-0 z-30 px-3 sm:px-4 bg-gradient-to-b from-black/80 to-transparent transition-opacity duration-300 safe-area-pt ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                 <div className="flex items-center justify-between gap-3 min-h-[56px]">
