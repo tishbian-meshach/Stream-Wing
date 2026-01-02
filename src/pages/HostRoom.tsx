@@ -25,7 +25,7 @@ export function HostRoom() {
     const [copied, setCopied] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [showControls, setShowControls] = useState(true);
-    const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Subscribe to room
     useEffect(() => {

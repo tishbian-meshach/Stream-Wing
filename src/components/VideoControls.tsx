@@ -141,12 +141,12 @@ export function VideoControls({
         <div className="w-full bg-gradient-to-t from-black/90 via-black/60 to-transparent px-4 py-4 sm:py-6">
             {/* Progress Bar */}
             {duration > 0 && (
-                <div className="mb-4">
+                <div className="mb-4 py-2">
                     <div
                         ref={progressBarRef}
                         className={cn(
-                            "relative h-2 bg-neutral-700 rounded-full cursor-pointer group",
-                            isDragging && "h-3"
+                            "relative h-1.5 bg-neutral-700 rounded-full cursor-pointer group overflow-visible",
+                            isDragging && "h-2"
                         )}
                         onMouseDown={handleMouseDown}
                         onTouchStart={handleTouchStart}
@@ -159,21 +159,24 @@ export function VideoControls({
                             }
                         }}
                     >
-                        {/* Buffer/loaded indicator could go here */}
+                        {/* Progress fill */}
                         <div
-                            className="absolute h-full bg-indigo-500 rounded-full transition-all"
+                            className="absolute top-0 left-0 h-full bg-indigo-500 rounded-full"
                             style={{ width: `${displayProgress}%` }}
                         />
                         {/* Thumb/handle */}
                         <div
                             className={cn(
-                                "absolute h-4 w-4 bg-white rounded-full shadow-lg transform -translate-y-1/4 transition-opacity",
+                                "absolute w-4 h-4 bg-white rounded-full shadow-lg -translate-x-1/2 -translate-y-1/2 transition-all",
                                 isDragging ? "opacity-100 scale-125" : "opacity-0 group-hover:opacity-100"
                             )}
-                            style={{ left: `calc(${displayProgress}% - 8px)`, top: '50%', transform: 'translateY(-50%)' }}
+                            style={{
+                                left: `${displayProgress}%`,
+                                top: '50%',
+                            }}
                         />
                     </div>
-                    <div className="flex justify-between text-xs text-gray-400 mt-1.5">
+                    <div className="flex justify-between text-xs text-gray-400 mt-2">
                         <span>{formatTime(isDragging ? (dragProgress / 100) * duration : currentTime)}</span>
                         <span>{formatTime(duration)}</span>
                     </div>
@@ -272,7 +275,7 @@ export function DoubleTapOverlay({ onDoubleTapLeft, onDoubleTapRight, onSingleTa
     const [showLeft, setShowLeft] = useState(false);
     const [showRight, setShowRight] = useState(false);
     const lastTapRef = useRef<{ time: number; side: 'left' | 'right' | null }>({ time: 0, side: null });
-    const tapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const tapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const handleTap = (e: React.MouseEvent | React.TouchEvent) => {
         const clientX = 'touches' in e ? e.changedTouches[0].clientX : e.clientX;
