@@ -14,7 +14,7 @@ export function ViewerRoom() {
     const peerId = location.state?.peerId || Math.random().toString(36).substr(2, 9);
 
     const { joinRoom, signaling, onSignalRef } = useRoom(peerId);
-    const [viewerManager, setViewerManager] = useState<ViewerPeerManager | null>(null);
+    const [_viewerManager, setViewerManager] = useState<ViewerPeerManager | null>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const [status, setStatus] = useState<'connecting' | 'streaming' | 'offline'>('connecting');

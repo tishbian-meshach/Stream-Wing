@@ -4,7 +4,7 @@ import { RealtimeChannel } from "@supabase/supabase-js";
 export class SignalingService {
     private peerId: string;
     private channel: RealtimeChannel | null = null;
-    private roomId: string | null = null;
+
 
     constructor(peerId: string) {
         this.peerId = peerId;
@@ -17,7 +17,7 @@ export class SignalingService {
         onSignal: (payload: any, fromPeerId: string) => void
     ) {
         if (this.channel) await this.leaveRoom();
-        this.roomId = roomId;
+
 
         this.channel = supabase.channel(`room:${roomId}`, {
             config: {

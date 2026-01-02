@@ -1,4 +1,3 @@
-import { cn } from '../lib/utils';
 import { Button } from './Button';
 import { FullscreenIcon, VolumeIcon } from './Icons';
 

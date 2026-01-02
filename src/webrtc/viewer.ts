@@ -4,7 +4,7 @@ import { SignalingService } from "../services/signaling";
 export class ViewerPeerManager {
     public pc: RTCPeerConnection;
     private signaling: SignalingService;
-    private roomId: string;
+
     private hostId: string | null = null;
     private onTrack: (stream: MediaStream) => void;
     private onSyncEvent: (event: any) => void;
@@ -12,12 +12,12 @@ export class ViewerPeerManager {
 
     constructor(
         signaling: SignalingService,
-        roomId: string,
+        _roomId: string,
         onTrack: (stream: MediaStream) => void,
         onSyncEvent: (event: any) => void
     ) {
         this.signaling = signaling;
-        this.roomId = roomId;
+
         this.onTrack = onTrack;
         this.onSyncEvent = onSyncEvent;
 
@@ -84,7 +84,7 @@ export class ViewerPeerManager {
         }
     }
 
-    connect(myId: string) {
+    connect(_myId: string) {
         console.log("Viewer waiting for offer...");
     }
 

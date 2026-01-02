@@ -3,10 +3,9 @@ import { KeepAwake } from '@capacitor-community/keep-awake';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useRoom } from '../hooks/useRoom';
 import { HostPeerManager } from '../webrtc/host';
-import { Button } from '../components/Button';
 import { ConnectionStatus } from '../components/StatusBadge';
 import { VideoControls, DoubleTapOverlay } from '../components/VideoControls';
-import { FilmIcon, UploadIcon, ArrowLeftIcon, CopyIcon, ShareIcon } from '../components/Icons';
+import { FilmIcon, UploadIcon, ArrowLeftIcon, ShareIcon } from '../components/Icons';
 import { shareContent, isNativePlatform } from '../lib/platform';
 
 export function HostRoom() {
@@ -25,7 +24,7 @@ export function HostRoom() {
     const [duration, setDuration] = useState(0);
     const [copied, setCopied] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const [showControls, setShowControls] = useState(true);
+    const [_showControls, setShowControls] = useState(true);
     const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Subscribe to room

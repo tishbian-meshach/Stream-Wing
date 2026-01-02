@@ -6,12 +6,12 @@ export class HostPeerManager {
     private dataChannels: Map<string, RTCDataChannel> = new Map();
     private stream: MediaStream | null = null;
     private signaling: SignalingService;
-    private roomId: string;
+
     private onSyncEvent?: (event: any) => void;
 
-    constructor(signaling: SignalingService, roomId: string, onSyncEvent?: (event: any) => void) {
+    constructor(signaling: SignalingService, _roomId: string, onSyncEvent?: (event: any) => void) {
         this.signaling = signaling;
-        this.roomId = roomId;
+
         this.onSyncEvent = onSyncEvent;
     }
 
